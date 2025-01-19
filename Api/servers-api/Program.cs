@@ -35,7 +35,6 @@ builder.Services.AddSingleton<IHttpClientFactoryService, HttpClientFactoryServic
 
 builder.Services.AddTransient<ITCPServerRunner, TCPServerRunner>();
 
-
 builder.Services.AddTransient<IJsonParsingService, JsonParsingService>();
 builder.Services.AddTransient<IRabbitMqQueueManager, RabbitMqQueueManager>();
 builder.Services.AddTransient<ITeachService, TeachService>();
