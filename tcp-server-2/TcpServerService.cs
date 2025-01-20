@@ -3,8 +3,8 @@ using System.Text;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace tcp_server_2
-{
+namespace tcp_server_2;
+
     public class TcpServerService : BackgroundService
     {
         private readonly ILogger<TcpServerService> _logger;
@@ -35,4 +35,3 @@ namespace tcp_server_2
             }
         }
     }
-}
