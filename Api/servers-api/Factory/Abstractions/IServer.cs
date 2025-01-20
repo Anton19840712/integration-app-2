@@ -6,6 +6,5 @@
     /// </summary>
     public interface IServer
     {
-	void UpServer (string host, int? port);
-	Task SendServerAddress(string host, int? port);
+	    void UpServer (string host, int? port);
     }

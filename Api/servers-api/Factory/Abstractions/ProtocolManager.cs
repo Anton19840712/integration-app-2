@@ -30,8 +30,6 @@ public class ProtocolManager
                 var server = factory.CreateServer();
 
                 server.UpServer(host, port);
-
-                server.SendServerAddress(host, port);
             }
             else
             {
