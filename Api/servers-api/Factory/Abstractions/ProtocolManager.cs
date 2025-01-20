@@ -37,14 +37,14 @@ public class ProtocolManager
                 {
                     // создаем определенный клиент согласно типу протокола и им соединяемся к их серверу
                     IClient client = factory.CreateClient();
-                    client.ConnectToServer(host, port.Value); // Доступ к значению port
+                    client.ConnectToServerAsync(host, port.Value); // Доступ к значению port
                 }
                 else
                 {
                     // Логика на случай, если порт равен null (если нужно)
                     // Например, можно использовать дефолтный порт:
                     IClient client = factory.CreateClient();
-                    client.ConnectToServer(host, 5000); // Пример с дефолтным портом
+                    client.ConnectToServerAsync(host, 5000); // Пример с дефолтным портом
                 }
             }
         }

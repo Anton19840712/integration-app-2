@@ -2,5 +2,5 @@
 
     public interface IClient
     {
-        void ConnectToServer(string host, int port);
+        Task ConnectToServerAsync(string host, int port);
     }
