@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "gateway", "Gateways\gateway\gateway.csproj", "{8A2FB8CF-E61F-47E6-B651-F7143B8AC393}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "servers-api", "Api\servers-api\servers-api.csproj", "{09A426EF-5FCA-4084-AC10-4ED8BA640A5C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{55CBA721-BCB3-4B30-8A21-D2BF0363B3F5} = {55CBA721-BCB3-4B30-8A21-D2BF0363B3F5}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jwtconfiguration", "Gateways\jwtconfiguration\jwtconfiguration.csproj", "{68952CA3-DF9A-4C8D-A83B-1434A8411D00}"
 EndProject
@@ -23,15 +26,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gateway ocelot", "gateway o
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{8A3E0F38-D4A1-4DE1-A08A-31A4C3DC6F29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tcp-server-2", "tcp-server-2\tcp-server-2.csproj", "{6E588626-CB0E-4D57-8C2B-EE3D5DDBE141}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tcp-server-2", "tcp-server-2\tcp-server-2.csproj", "{6E588626-CB0E-4D57-8C2B-EE3D5DDBE141}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tcp-server", "tcp-server\tcp-server.csproj", "{55CBA721-BCB3-4B30-8A21-D2BF0363B3F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tcp-server", "tcp-server\tcp-server.csproj", "{55CBA721-BCB3-4B30-8A21-D2BF0363B3F5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test projects", "test projects", "{ADD37147-EDA0-4BF4-8E08-1A7470E5CC29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "client", "client\client.csproj", "{61CEA076-095F-4BFC-90BE-F05DB5137A87}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "client", "client\client.csproj", "{61CEA076-095F-4BFC-90BE-F05DB5137A87}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "server", "server\server.csproj", "{0F8FF8CC-8F3D-4165-BED4-CD745672FF7B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "server", "server\server.csproj", "{0F8FF8CC-8F3D-4165-BED4-CD745672FF7B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

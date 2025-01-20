@@ -15,11 +15,11 @@ local jsonData = {
         OutQueueName = "corporation_out"
     },
     dataOptions = {
-        client = true,
-        server = false,
+        client = false,
+        server = true,
         serverDetails = {
             host = "127.0.0.1",
-            port = 8080
+            port = 5018
         }
     }
 }
