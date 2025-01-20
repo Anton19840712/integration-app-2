@@ -35,7 +35,6 @@ public class TcpPingClientService : ITcpPingClientService
 			response = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 			Console.WriteLine($"Получен ответ от сервера: {response}");
 			return response;
-			return default;
 		}
 		catch (Exception ex)
 		{

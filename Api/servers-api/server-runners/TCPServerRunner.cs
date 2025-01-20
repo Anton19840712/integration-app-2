@@ -14,8 +14,9 @@ public class TCPServerRunner : ITCPServerRunner
 		{
 			var processStartInfo = new ProcessStartInfo
 			{
-				//FileName = @"D:\protei gateway\server-manager\tcp-server\bin\Debug\net8.0\tcp-server.exe",
-				FileName = @"C:\Users\savchuk-r\source\repos\dynamicgate\tcp-server\bin\Debug\net8.0\tcp-server.exe", 
+				// FileName = @"D:\protei gateway\server-manager\tcp-server\bin\Debug\net8.0\tcp-server.exe",
+				// FileName = @"C:\Users\savchuk-r\source\repos\dynamicgate\tcp-server\bin\Debug\net8.0\tcp-server.exe",
+				FileName = @"C:\projects\protei\dynamicgate\tcp-server\bin\Debug\net8.0\tcp-server.exe",
 				Arguments = $"{host},{port}", // Передаем параметры через запятую
 				UseShellExecute = true,
 				CreateNoWindow = false
