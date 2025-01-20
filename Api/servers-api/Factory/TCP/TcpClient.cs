@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Sockets;
+using System.Text;
 using servers_api.Factory.Abstractions;
 using ILogger = Serilog.ILogger;
 
@@ -14,37 +15,49 @@ public class TcpClient : IClient
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 	}
 
-	// Метод для подключения к серверу с логированием
+	// Метод для подключения к серверу с логированием и повторными попытками
 	public async Task ConnectToServerAsync(string host, int port)
 	{
-		try
+		var maxAttempts = 12;  // Максимальное количество попыток (1 минута / 5 секунд = 12 попыток)
+		var attempt = 0;
+
+		while (attempt < maxAttempts)
 		{
-			_logger.Information($"Попытка подключения к серверу {host}:{port}...");
+			try
+			{
+				_logger.Information($"Попытка подключения к серверу {host}:{port}, попытка {attempt + 1} из {maxAttempts}...");
 
-			using var client = new System.Net.Sockets.TcpClient();
-			await client.ConnectAsync(host, port);
+				using var client = new System.Net.Sockets.TcpClient();
+				await client.ConnectAsync(host, port);
 
-			var result = client.Connected;
-			_logger.Information($"Статус соединения: {result}");
+				var result = client.Connected;
+				_logger.Information($"Статус соединения: {result}");
 
-			using var stream = client.GetStream();
-			var message = "ping";
-			var buffer = Encoding.UTF8.GetBytes(message);
+				if (result)
+				{
+					_logger.Information($"Успешно подключено к серверу {host}:{port}");
+					return;  // Успешное подключение, выходим из метода
+				}
+				else
+				{
+					_logger.Warning($"Не удалось подключиться к серверу {host}:{port}");
+				}
+			}
+			catch (Exception ex)
+			{
+				// Логирование ошибки при попытке подключения
+				_logger.Error($"Ошибка при подключении: {ex.Message}");
+			}
 
-			// Отправка сообщения "ping"
-			await stream.WriteAsync(buffer, 0, buffer.Length);
-			_logger.Information($"Отправлено сообщение: {message}");
+			attempt++;
 
-			// Чтение ответа от сервера
-			buffer = new byte[256];
-			int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-			var response = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-			_logger.Information($"Получен ответ от сервера: {response}");
+			if (attempt < maxAttempts)
+			{
+				// Задержка 5 секунд между попытками
+				await Task.Delay(5000);
+			}
 		}
-		catch (Exception ex)
-		{
-			// Логирование ошибки
-			_logger.Error($"Ошибка при подключении: {ex.Message}");
-		}
+
+		_logger.Error($"Не удалось подключиться к серверу {host}:{port} за {maxAttempts} попыток.");
 	}
 }
