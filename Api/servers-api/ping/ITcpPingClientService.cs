@@ -1,7 +1,6 @@
-﻿namespace servers_api.ping
+﻿namespace servers_api.ping;
+
+public interface ITcpPingClientService
 {
-	public interface ITcpPingClientService
-	{
-		Task<string> PingServerAsync(string host, int? port);
-	}
+	Task<string> PingServerAsync(string host, int? port);
 }

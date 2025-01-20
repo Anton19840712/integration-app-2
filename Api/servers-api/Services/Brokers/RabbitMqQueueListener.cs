@@ -6,96 +6,95 @@ using RabbitMQ.Client.Events;
 using servers_api.Models;
 using ILogger = Serilog.ILogger;
 
-namespace servers_api.Services.Brokers
+namespace servers_api.Services.Brokers;
+
+/// <summary>
+/// Не совсем понятно, возможно, что после обучения стоит удалять очереди, потому что обучение произошло как таковое.
+/// </summary>
+public class RabbitMqQueueListener : IRabbitMqQueueListener
 {
-	/// <summary>
-	/// Не совсем понятно, возможно, что после обучения стоит удалять очереди, потому что обучение произошло как таковое.
-	/// </summary>
-	public class RabbitMqQueueListener : IRabbitMqQueueListener
+	private readonly IConnectionFactory _connectionFactory;
+	private readonly ILogger _logger;
+	private IConnection _connection;
+	private IModel _channel;
+	private string _queueName;
+	private readonly Channel<ResponceIntegration> _responseChannel;
+
+	public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger logger)
 	{
-		private readonly IConnectionFactory _connectionFactory;
-		private readonly ILogger _logger;
-		private IConnection _connection;
-		private IModel _channel;
-		private string _queueName;
-		private readonly Channel<ResponceIntegration> _responseChannel;
+		_connectionFactory = connectionFactory;
+		_logger = logger;
+		_responseChannel = Channel.CreateUnbounded<ResponceIntegration>();
+	}
 
-		public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger logger)
+	public async Task<ResponceIntegration> StartListeningAsync(string queueName, CancellationToken stoppingToken)
+	{
+		_queueName = queueName;
+
+		try
 		{
-			_connectionFactory = connectionFactory;
-			_logger = logger;
-			_responseChannel = Channel.CreateUnbounded<ResponceIntegration>();
-		}
+			_connection = _connectionFactory.CreateConnection();
+			_channel = _connection.CreateModel();
 
-		public async Task<ResponceIntegration> StartListeningAsync(string queueName, CancellationToken stoppingToken)
-		{
-			_queueName = queueName;
+			var consumer = new EventingBasicConsumer(_channel);
 
-			try
+			consumer.Received += async (model, ea) =>
 			{
-				_connection = _connectionFactory.CreateConnection();
-				_channel = _connection.CreateModel();
+				var body = ea.Body.ToArray();
+				var message = Encoding.UTF8.GetString(body);
 
-				var consumer = new EventingBasicConsumer(_channel);
-
-				consumer.Received += async (model, ea) =>
+				// Десериализация основного сообщения
+				var mainMessage = JsonConvert.DeserializeObject<OutMessage>(message);
+				if (mainMessage != null)
 				{
-					var body = ea.Body.ToArray();
-					var message = Encoding.UTF8.GetString(body);
+					string jsonString = mainMessage.IncomingModel.ToString(Formatting.None);
 
-					// Десериализация основного сообщения
-					var mainMessage = JsonConvert.DeserializeObject<OutMessage>(message);
-					if (mainMessage != null)
+					// Логирование в одном сообщении
+					_logger.Information(
+						"Получено сообщение из {Queue}:\nId: {Id} \nInQueueName: {InQueueName} \nOutQueueName: {OutQueueName} \nIncomingModel: {IncomingModel}",
+						_queueName,
+						mainMessage.Id,
+						mainMessage.InQueueName,
+						mainMessage.OutQueueName,
+						jsonString);
+
+					// Добавляем результат в канал
+					await _responseChannel.Writer.WriteAsync(new ResponceIntegration
 					{
-						string jsonString = mainMessage.IncomingModel.ToString(Formatting.None);
-
-						// Логирование в одном сообщении
-						_logger.Information(
-							"Получено сообщение из {Queue}:\nId: {Id} \nInQueueName: {InQueueName} \nOutQueueName: {OutQueueName} \nIncomingModel: {IncomingModel}",
-							_queueName,
-							mainMessage.Id,
-							mainMessage.InQueueName,
-							mainMessage.OutQueueName,
-							jsonString);
-
-						// Добавляем результат в канал
-						await _responseChannel.Writer.WriteAsync(new ResponceIntegration
-						{
-							Message = message,
-							Result = true
-						}, stoppingToken);
-					}
-					else
-					{
-						_logger.Warning("Получено пустое или некорректное сообщение из {Queue}", _queueName);
-					}
-				};
-
-				_channel.BasicConsume(queue: _queueName, autoAck: true, consumer: consumer);
-				_logger.Information("Слушатель очереди {Queue} запущен и ожидает сообщений...", _queueName);
-
-				// Чтение из канала и возврат результата при получении сообщения
-				return await _responseChannel.Reader.ReadAsync(stoppingToken);
-			}
-			catch (Exception ex)
-			{
-				_logger.Error(ex, "Ошибка при прослушивании очереди {Queue}", _queueName);
-				return new ResponceIntegration
+						Message = message,
+						Result = true
+					}, stoppingToken);
+				}
+				else
 				{
-					Message = $"Ошибка при прослушивании очереди {_queueName}: {ex.Message}",
-					Result = false
-				};
-			}
-			finally
-			{
-				StopListening();
-			}
+					_logger.Warning("Получено пустое или некорректное сообщение из {Queue}", _queueName);
+				}
+			};
+
+			_channel.BasicConsume(queue: _queueName, autoAck: true, consumer: consumer);
+			_logger.Information("Слушатель очереди {Queue} запущен и ожидает сообщений...", _queueName);
+
+			// Чтение из канала и возврат результата при получении сообщения
+			return await _responseChannel.Reader.ReadAsync(stoppingToken);
 		}
-		public void StopListening()
+		catch (Exception ex)
 		{
-			_channel?.Close();
-			_connection?.Close();
-			_logger.Information("Слушатель очереди {Queue} остановлен", _queueName);
+			_logger.Error(ex, "Ошибка при прослушивании очереди {Queue}", _queueName);
+			return new ResponceIntegration
+			{
+				Message = $"Ошибка при прослушивании очереди {_queueName}: {ex.Message}",
+				Result = false
+			};
 		}
+		finally
+		{
+			StopListening();
+		}
+	}
+	public void StopListening()
+	{
+		_channel?.Close();
+		_connection?.Close();
+		_logger.Information("Слушатель очереди {Queue} остановлен", _queueName);
 	}
 }

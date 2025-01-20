@@ -1,7 +1,6 @@
-﻿namespace servers_api.http_client_factory
+﻿namespace servers_api.http_client_factory;
+
+public interface IHttpClientFactoryService
 {
-	public interface IHttpClientFactoryService
-	{
-		HttpClient CreateClient();
-	}
+	HttpClient CreateClient();
 }
