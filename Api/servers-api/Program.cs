@@ -2,7 +2,6 @@ using RabbitMQ.Client;
 using Serilog;
 using servers_api.endpoints;
 using servers_api.Handlers;
-using servers_api.http_client_factory;
 using servers_api.Patterns;
 using servers_api.Services.Brokers;
 using servers_api.Services.Connectors;
@@ -24,9 +23,6 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddCors();
-
-//
-builder.Services.AddSingleton<IHttpClientFactoryService, HttpClientFactoryService>();
 
 builder.Services.AddTransient<ITCPServerRunner, TCPServerRunner>();
 
