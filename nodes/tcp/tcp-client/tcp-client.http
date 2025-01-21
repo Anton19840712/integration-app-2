@@ -1,6 +1,0 @@
-@tcp_client_HostAddress = http://localhost:5069
-
-GET {{tcp_client_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
