@@ -2,30 +2,21 @@ local http = require("socket.http")
 local ltn12 = require("ltn12")
 local json = require("dkjson") -- JSON библиотека для Lua
 
--- Создаем JSON-объект
-local jsonData = {
-    protocol = "TCP",
-    dataFormat = "json",
-    companyName = "corporation",
-    model = {
-        InternalModel = "{\"shipmentId\":\"12345\",\"destination\":\"New York\",\"weightKg\":250,\"status\":\"In Transit\",\"estimatedDelivery\":\"2025-01-25\"}"
-    },
-    QueuesNames = {
-        InQueueName = "corporation_in",
-        OutQueueName = "corporation_out"
-    },
-    dataOptions = {
-        client = false,
-        server = true,
-        serverDetails = {
-            host = "127.0.0.1",
-            port = 5018
-        }
-    }
-}
+-- Читаем JSON-данные из файла
+local function readJsonFile(filename)
+    local file = io.open(filename, "r")
+    if not file then
+        error("Не удалось открыть файл: " .. filename)
+    end
+    local content = file:read("*a")
+    file:close()
+    return json.decode(content)
+end
 
+-- Загрузка данных из файла
+local jsonData = readJsonFile("data.json")
 
--- Преобразуем таблицу в JSON
+-- Преобразуем таблицу обратно в JSON-строку
 local jsonString = json.encode(jsonData)
 
 -- Отправляем POST-запрос

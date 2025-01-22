@@ -7,11 +7,27 @@ using servers_api.Services.Brokers;
 using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
-using servers_api.start;
+using tcp_client;
 
 Console.Title = "client api";
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Чтение порта для запуска client
+string port = builder.Configuration["Port"]
+			   ?? args.FirstOrDefault(arg => arg.StartsWith("--port="))?.Split('=')[1];
+
+if (string.IsNullOrEmpty(port))
+{
+	port = "5001"; // Порт по умолчанию
+}
+
+// Настройка адреса запуска
+string url = $"http://localhost:{port}";
+builder.WebHost.UseUrls(url);
+
+// Логирование адреса запуска
+Log.Information("Приложение client запускается на {Url}", url);
 
 builder.Host.UseSerilog((ctx, cfg) => cfg
                    .ReadFrom.Configuration(ctx.Configuration)
@@ -24,7 +40,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddCors();
 
-builder.Services.AddTransient<ITCPServerRunner, TCPServerRunner>();
+builder.Services.AddHostedService<ResponseListenerService>();
 
 builder.Services.AddTransient<IJsonParsingService, JsonParsingService>();
 builder.Services.AddTransient<IRabbitMqQueueManager, RabbitMqQueueManager>();
@@ -46,12 +62,9 @@ builder.Services.AddSingleton<IConnectionFactory>(provider =>
 });
 
 builder.Services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
-//builder.Services.AddHostedService<TcpPingBackgroundService>();
+builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 
 var app = builder.Build();
-
-var urls = builder.WebHost.GetSetting("urls");
-Log.Information($"Server is running on: {urls}");
 
 app.UseSerilogRequestLogging();
 
@@ -61,6 +74,7 @@ app.UseCors(builder => builder
     .AllowAnyHeader()
 );
 
-app.MapApiEndpoints();
+app.MapCommonApiEndpoints();
+app.MapTcpApiEndpoints();
 
 app.Run();

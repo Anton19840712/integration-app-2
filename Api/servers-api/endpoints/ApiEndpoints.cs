@@ -7,7 +7,7 @@ namespace servers_api.endpoints;
 
 public static class ApiEndpoints
 {
-	public static void MapApiEndpoints(this IEndpointRouteBuilder app)
+	public static void MapCommonApiEndpoints(this IEndpointRouteBuilder app)
 	{
 		// GET-запрос для проверки доступности сервера
 		app.MapGet("/api/servers/ping", () =>

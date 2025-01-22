@@ -1,13 +1,17 @@
 ﻿using servers_api.Factory.Abstractions;
-using servers_api.start;
-
+using ILogger = Serilog.ILogger;
 namespace servers_api.Factory.TCP;
 
 public class TcpServer : IServer
-    {
+{
+	private readonly ILogger _logger;
+
+	public TcpServer(ILogger logger)
+	{
+		_logger = logger;
+	}
 	public void UpServer(string host, int? port)
 	{
-		var runner = new TCPServerRunner();
-		runner.RunTcpServer(host, port);
+		_logger.Information("Запущен сервер");
 	}
 }
