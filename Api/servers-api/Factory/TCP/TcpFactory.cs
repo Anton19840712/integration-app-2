@@ -8,7 +8,7 @@ public class TcpFactory : ProtocolFactory
 	private readonly ILogger _logger;
     public override IServer CreateServer()
     {
-        return new TcpServer();
+        return new TcpServer(_logger);
     }
 
     // если на UI/или в конфигурационном файлы мы выбрали сервер, то я предполагаю, что сервер должен создаться в нашем контуре и отправить
