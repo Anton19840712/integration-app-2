@@ -16,6 +16,7 @@ namespace servers_api.Services.Connectors;
             _logger = logger;
         }
 
+        //TODO переименуй метод в UP
         public async Task<ResponceIntegration> RunServerByProtocolTypeAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
         {
             _logger.Information(

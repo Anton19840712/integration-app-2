@@ -23,18 +23,18 @@ builder.Host.UseSerilog((ctx, cfg) =>
 
 try
 {
-	// Чтение параметра порта из аргументов
-	string port = args.FirstOrDefault(arg => arg.StartsWith("--port="))?.Split('=')[1];
-	if (string.IsNullOrEmpty(port))
-	{
-		Log.Error("Порт не указан. Пример: MyApp.exe --port=5001");
-		return;
-	}
+	//// Чтение параметра порта из аргументов
+	//string port = args.FirstOrDefault(arg => arg.StartsWith("--port="))?.Split('=')[1];
+	//if (string.IsNullOrEmpty(port))
+	//{
+	//	Log.Error("Порт не указан. Пример: MyApp.exe --port=5001");
+	//	return;
+	//}
 
-	// Настройка адреса запуска
-	string url = $"http://localhost:{port}";
-	builder.WebHost.UseUrls(url);
-	Log.Information("Приложение будет запущено по адресу: {Url}", url);
+	//// Настройка адреса запуска
+	//string url = $"http://localhost:{port}";
+	//builder.WebHost.UseUrls(url);
+	//Log.Information("Приложение будет запущено по адресу: {Url}", url);
 
 	// Регистрация сервисов
 	builder.Services.AddCoreServices();

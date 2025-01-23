@@ -6,5 +6,5 @@
     /// </summary>
     public interface IServer
     {
-	    void UpServer (string host, int? port);
-    }
+        Task UpServerAsync(string host, int? port, CancellationToken cancellationToken = default);
+	}

@@ -29,7 +29,7 @@ public class ProtocolManager
             {
                 var server = factory.CreateServer();
 
-                server.UpServer(host, port);
+                server.UpServerAsync(host, port);
             }
             else
             {
