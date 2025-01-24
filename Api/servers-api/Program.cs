@@ -17,7 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) =>
 {
 	cfg.WriteTo.Console()
-	   .WriteTo.Seq("http://localhost:5341")
+		.WriteTo.Seq("https://seq.pit.protei.ru/")
+	   //.WriteTo.Seq("http://localhost:5341")
 	   .Enrich.FromLogContext();
 });
 
@@ -98,13 +99,21 @@ static class ServiceCollectionExtensions
 		Log.Information("Инициализация RabbitMQ...");
 		services.AddSingleton<IConnectionFactory>(provider =>
 		{
+			// UNCOMMENT
+			//
+			//var factory = new ConnectionFactory
+			//{
+
+			//	HostName = "localhost",
+			//	Port = 5672,
+			//	UserName = "guest",
+			//	Password = "guest"
+			//};
 			var factory = new ConnectionFactory
 			{
-				HostName = "localhost",
-				Port = 5672,
-				UserName = "guest",
-				Password = "guest"
+				Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
 			};
+
 			Log.Information("RabbitMQ настроен: {Host}:{Port}", factory.HostName, factory.Port);
 			return factory;
 		});
