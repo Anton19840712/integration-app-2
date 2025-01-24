@@ -101,18 +101,18 @@ static class ServiceCollectionExtensions
 		{
 			// UNCOMMENT
 			//
-			//var factory = new ConnectionFactory
-			//{
-
-			//	HostName = "localhost",
-			//	Port = 5672,
-			//	UserName = "guest",
-			//	Password = "guest"
-			//};
 			var factory = new ConnectionFactory
 			{
-				Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
+
+				HostName = "localhost",
+				Port = 5672,
+				UserName = "guest",
+				Password = "guest"
 			};
+			//var factory = new ConnectionFactory
+			//{
+			//	Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
+			//};
 
 			Log.Information("RabbitMQ настроен: {Host}:{Port}", factory.HostName, factory.Port);
 			return factory;

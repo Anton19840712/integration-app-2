@@ -3,34 +3,35 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using servers_api.Patterns;
 
-namespace servers_api.endpoints;
-
-public static class ApiEndpoints
+namespace servers_api.endpoints
 {
-	public static void MapCommonApiEndpoints(this IEndpointRouteBuilder app)
+	public static class ApiEndpoints
 	{
-		// GET-запрос для проверки доступности сервера
-		app.MapGet("/api/servers/ping", () =>
+		public static void MapCommonApiEndpoints(this IEndpointRouteBuilder app)
 		{
-			return Results.Ok(new { message = "Ping successful" });
-		});
+			// GET-запрос для проверки доступности сервера
+			app.MapGet("/api/servers/ping", () =>
+			{
+				return Results.Ok(new { message = "Ping successful" });
+			});
 
-		// POST-запрос для загрузки файла
-		app.MapPost("/api/servers/upload", async (
-			[FromBody] JsonElement jsonBody,
-			IUploadService uploadFileService,
-			CancellationToken stoppingToken) =>
-		{
-			try
+			// POST-запрос для загрузки файла
+			app.MapPost("/api/servers/upload", async (
+				[FromBody] JsonElement jsonBody,
+				IUploadService uploadFileService,
+				CancellationToken stoppingToken) =>
 			{
-				var message = await uploadFileService.ConfigureAsync(jsonBody, stoppingToken);
-				return Results.Ok();
-			}
-			catch (Exception ex)
-			{
-				Log.Error(ex, "Error during file upload");
-				return Results.Problem(ex.Message);
-			}
-		});
+				try
+				{
+					var message = await uploadFileService.ConfigureAsync(jsonBody, stoppingToken);
+					return Results.Ok();
+				}
+				catch (Exception ex)
+				{
+					Log.Error(ex, "Error during file upload");
+					return Results.Problem(ex.Message);
+				}
+			});
+		}
 	}
 }

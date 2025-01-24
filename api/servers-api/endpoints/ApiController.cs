@@ -16,25 +16,25 @@ namespace servers_api.endpoints
 
 		public ApiController()
 		{
-			Log.Logger = new LoggerConfiguration()
-				.WriteTo.Console()
-				.WriteTo.Seq("https://seq.pit.protei.ru/")
-				.CreateLogger();
+			//Log.Logger = new LoggerConfiguration()
+			//	.WriteTo.Console()
+			//	.WriteTo.Seq("https://seq.pit.protei.ru/")
+			//	.CreateLogger();
 
-			// Настройка RabbitMQ подключения
-			var factory = new ConnectionFactory
-			{
-				Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
-			};
-			_connection = factory.CreateConnection();
-			_channel = _connection.CreateModel();
+			//// Настройка RabbitMQ подключения
+			//var factory = new ConnectionFactory
+			//{
+			//	Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
+			//};
+			//_connection = factory.CreateConnection();
+			//_channel = _connection.CreateModel();
 
-			// Объявляем очередь для отправки сообщений
-			_channel.QueueDeclare(queue: "bpmn_queue",
-								 durable: true,
-								 exclusive: false,
-								 autoDelete: false,
-								 arguments: null);
+			//// Объявляем очередь для отправки сообщений
+			//_channel.QueueDeclare(queue: "bpmn_queue",
+			//					 durable: true,
+			//					 exclusive: false,
+			//					 autoDelete: false,
+			//					 arguments: null);
 		}
 
 		[HttpPost]
