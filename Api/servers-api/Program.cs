@@ -1,13 +1,13 @@
 using RabbitMQ.Client;
 using Serilog;
-using servers_api.endpoints;
+using servers_api.factory.tcp;
 using servers_api.Handlers;
 using servers_api.Patterns;
+using servers_api.rest;
 using servers_api.Services.Brokers;
 using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
-using tcp_client;
 
 Console.Title = "Client API";
 
@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) =>
 {
 	cfg.WriteTo.Console()
-		.WriteTo.Seq("https://seq.pit.protei.ru/")
+	   //.WriteTo.Seq("https://seq.pit.protei.ru/")
 	   //.WriteTo.Seq("http://localhost:5341")
 	   .Enrich.FromLogContext();
 });

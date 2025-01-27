@@ -1,4 +1,4 @@
-﻿namespace tcp_client
+﻿namespace servers_api.factory.tcp
 {
 	using RabbitMQ.Client;
 	using RabbitMQ.Client.Events;

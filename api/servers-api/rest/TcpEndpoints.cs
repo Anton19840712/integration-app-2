@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using servers_api.Patterns;
 
-namespace servers_api.endpoints
+namespace servers_api.rest
 {
 	public static class TcpEndpoints
 	{

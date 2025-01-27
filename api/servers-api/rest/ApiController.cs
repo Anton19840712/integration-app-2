@@ -6,7 +6,7 @@ using Serilog;
 using Newtonsoft.Json.Linq;
 using RabbitMQ.Client;
 
-namespace servers_api.endpoints
+namespace servers_api.rest
 {
 	[Route("/api")]
 	public class ApiController : ControllerBase
