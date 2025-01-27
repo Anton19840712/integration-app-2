@@ -10,8 +10,8 @@
         "OutQueueName": "corporation_out"
     },
     "dataOptions": {
-        "client": false,
-        "server": true,
+        "client": true,
+        "server": false,
         "serverDetails": {
             "host": "127.0.0.1",
             "port": 5018
