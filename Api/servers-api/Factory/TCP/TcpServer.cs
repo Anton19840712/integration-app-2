@@ -8,7 +8,7 @@ namespace servers_api.Factory.TCP
 {
 	public class TcpServer : IServer
 	{
-		private readonly ILogger _logger;
+		public readonly ILogger _logger;
 
 		public TcpServer(ILogger logger)
 		{
@@ -17,6 +17,9 @@ namespace servers_api.Factory.TCP
 
 		public async Task UpServerAsync(string host, int? port, CancellationToken cancellationToken = default)
 		{
+			if (string.IsNullOrWhiteSpace(host))
+				throw new ArgumentException("Host cannot be null or empty.", nameof(host));
+
 			if (!port.HasValue)
 			{
 				_logger.Error("Port is not specified. Unable to start the server.");
@@ -29,26 +32,42 @@ namespace servers_api.Factory.TCP
 				return;
 			}
 
+			var listener = new TcpListener(ipAddress, port.Value);
+
 			try
 			{
-				var listener = new TcpListener(ipAddress, port.Value);
 				listener.Start();
-
-				_logger.Information("Server is running on {Host}:{Port}", host, port.Value);
-				_logger.Information("Waiting for a connection...");
+				//_logger.Information("TCP server started on {Host}:{Port}", host, port);
 
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					var client = await listener.AcceptTcpClientAsync(cancellationToken);
-					_ = Task.Run(() => HandleClientAsync(client, cancellationToken), cancellationToken);
-				}
+					try
+					{
+						var client = await listener.AcceptTcpClientAsync(cancellationToken);
+						//_logger.Information("Client connected: {Client}", client.Client.RemoteEndPoint);
 
-				listener.Stop();
-				_logger.Information("Server has stopped.");
+						// Обрабатываем клиента в отдельной задаче
+						_ = Task.Run(() => HandleClientAsync(client, cancellationToken), cancellationToken);
+					}
+					catch (OperationCanceledException)
+					{
+						//_logger.Information("Server shutdown is requested.");
+						break;
+					}
+					catch (Exception ex)
+					{
+						//_logger.Error(ex, "Error accepting client connection.");
+					}
+				}
 			}
 			catch (Exception ex)
 			{
-				_logger.Error(ex, "An error occurred while running the TCP server.");
+				//_logger.Error(ex, "Critical error occurred while running the server.");
+			}
+			finally
+			{
+				listener.Stop();
+				//_logger.Information("TCP server on {Host}:{Port} has been stopped.", host, port);
 			}
 		}
 
@@ -56,29 +75,33 @@ namespace servers_api.Factory.TCP
 		{
 			try
 			{
-				_logger.Information("Connection accepted from {Client}", client.Client.RemoteEndPoint);
-
-				using var stream = client.GetStream();
+				await using var stream = client.GetStream();
 				var buffer = new byte[256];
-				int bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+
+				// Читаем сообщение от клиента
+				int bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+				if (bytesRead == 0)
+				{
+					//_logger.Warning("Client {Client} disconnected.", client.Client.RemoteEndPoint);
+					return;
+				}
+
 				var message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+				//_logger.Information("Received message from {Client}: {Message}", client.Client.RemoteEndPoint, message);
 
-				_logger.Information("Received message: {Message}", message);
-
-				var response = "The message was received by the server.";
-				var responseBytes = Encoding.UTF8.GetBytes(response);
-				await stream.WriteAsync(responseBytes, cancellationToken);
-
-				_logger.Information("Sent acknowledgement to client.");
+				// Отправляем ответ
+				var response = Encoding.UTF8.GetBytes("Message received.");
+				await stream.WriteAsync(response.AsMemory(0, response.Length), cancellationToken);
+				//_logger.Information("Response sent to {Client}.", client.Client.RemoteEndPoint);
 			}
 			catch (Exception ex)
 			{
-				_logger.Error(ex, "An error occurred while handling a client connection.");
+				//_logger.Error(ex, "Error handling client {Client}.", client.Client.RemoteEndPoint);
 			}
 			finally
 			{
 				client.Close();
-				_logger.Information("Client connection closed.");
+				//_logger.Information("Connection with client {Client} closed.", client.Client.RemoteEndPoint);
 			}
 		}
 	}
