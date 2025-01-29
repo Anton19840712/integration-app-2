@@ -1,11 +1,11 @@
-﻿namespace servers_api.Factory.Abstractions
+﻿namespace servers_api.factory.abstractions
 {
-	    /// <summary>
-	    /// Создаем или клиент или сервер определенного протокола.
-	    /// </summary>
-	    public abstract class ProtocolFactory
-	    {
-	        public abstract IServer CreateServer();
-	        public abstract IClient CreateClient();
-	    }
+	/// <summary>
+	/// Создаем или клиент или сервер определенного протокола.
+	/// </summary>
+	public abstract class ProtocolFactory
+	{
+	    public abstract IUpServer CreateServer();
+	    public abstract IUpClient CreateClient();
+	}
 }

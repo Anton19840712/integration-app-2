@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
+using servers_api.models;
 using servers_api.Models;
 using ILogger = Serilog.ILogger;
 

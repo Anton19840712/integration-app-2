@@ -22,7 +22,7 @@ local jsonString = json.encode(jsonData)
 -- Отправляем POST-запрос
 local response = {}
 local _, code = http.request{
-    url = "http://localhost:5004/api/servers/upload",
+    url = "http://localhost:5106/api/servers/upload",
     method = "POST",
     headers = {
         ["Content-Type"] = "application/json",

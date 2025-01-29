@@ -1,23 +1,31 @@
-﻿using servers_api.Factory.Abstractions;
-using ILogger = Serilog.ILogger;
+﻿using servers_api.factory.abstractions;
+using servers_api.Factory.TCP;
 
-namespace servers_api.Factory.TCP
+public class TcpFactory : ProtocolFactory
 {
-	public class TcpFactory : ProtocolFactory
-	{
-		private readonly ILogger _logger;
-	    public override IServer CreateServer()
-	    {
-	        return new TcpServer(_logger);
-	    }
+	private readonly ILogger<TcpFactory> _logger;
+	private readonly ILogger<TcpServer> _serverLogger;
+	private readonly ILogger<TcpClient> _clientLogger;
 
-	    // если на UI/или в конфигурационном файлы мы выбрали сервер, то я предполагаю, что сервер должен создаться в нашем контуре и отправить
-	    // свой адрес, где он был запущен на клиент для начала
-	    // если же мы захотели поднять клиент, который будет обращаться к их внешнему серверу, то в конфигурационной информации мы должны будем получить 
-	    // адрес сервера, куда мы будем соединяться, обращаться автоматически.
-	    public override IClient CreateClient()
-	    {
-	        return new TcpClient(_logger);
-	    }
+	public TcpFactory(
+		ILogger<TcpFactory> logger,
+		ILogger<TcpServer> serverLogger,
+		ILogger<TcpClient> clientLogger)
+	{
+		_logger = logger;
+		_serverLogger = serverLogger;
+		_clientLogger = clientLogger;
+	}
+
+	public override IUpServer CreateServer()
+	{
+		_logger.LogInformation("Creating a TcpServer instance.");
+		return new TcpServer(_serverLogger);
+	}
+
+	public override IUpClient CreateClient()
+	{
+		_logger.LogInformation("Creating a TcpClient instance.");
+		return new TcpClient(_clientLogger);
 	}
 }

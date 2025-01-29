@@ -1,66 +1,55 @@
-﻿using servers_api.Factory.Abstractions;
-using ILogger = Serilog.ILogger;
+﻿using servers_api.factory.abstractions;
+using servers_api.models;
 
 namespace servers_api.Factory.TCP
 {
-	public class TcpClient : IClient
+	public class TcpClient : IUpClient
 	{
-		//private readonly ILogger _logger;
+		private readonly ILogger<TcpClient> _logger;
 
-		// Конструктор с инъекцией логгера
-		public TcpClient(ILogger logger)
+		public TcpClient(ILogger<TcpClient> logger)
 		{
-			//_logger = logger;
+			_logger = logger;
+			_logger.LogInformation("TcpClient instance created.");
 		}
 
 		// Метод для подключения к серверу с логированием и повторными попытками
-		public async Task ConnectToServerAsync(string host, int port)
+		public async Task<ResponceIntegration> ConnectToServerAsync(string host, int port)
 		{
-			var maxAttempts = 12;  // Максимальное количество попыток (1 минута / 5 секунд = 12 попыток)
+			var maxAttempts = 1; // Максимальное количество попыток
 			var attempt = 0;
 
 			while (attempt < maxAttempts)
 			{
+				attempt++; // Увеличиваем счетчик попыток перед выполнением логики
+
 				try
 				{
-					//_logger.Information($"Попытка подключения к серверу {host}:{port}, попытка {attempt + 1} из {maxAttempts}...");
+					_logger.LogInformation($"Попытка подключения к серверу {host}:{port}, попытка {attempt} из {maxAttempts}...");
 
 					using var client = new System.Net.Sockets.TcpClient();
 					await client.ConnectAsync(host, port);
 
-					var result = client.Connected;
-					//_logger.Information($"Статус соединения: {result}");
-
-					if (result)
+					if (client.Connected)
 					{
-						//_logger.Information($"Успешно подключено к серверу {host}:{port}");
-						Console.WriteLine($"Успешно подключено к серверу {host}:{port}");
-						return;  // Успешное подключение, выходим из метода
-					}
-					else
-					{
-						//_logger.Warning($"Не удалось подключиться к серверу {host}:{port}");
-						Console.WriteLine($"Не удалось подключиться к серверу {host}:{port}");
+						_logger.LogInformation($"Успешно подключено к серверу {host}:{port}");
+						return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 					}
 				}
 				catch (Exception ex)
 				{
-					// Логирование ошибки при попытке подключения
-					//_logger.Error($"Ошибка при подключении: {ex.Message}");
-					Console.WriteLine($"Ошибка при подключении: {ex.Message}");
+					_logger.LogError($"Ошибка при подключении: {ex.Message}");
 				}
-
-				attempt++;
 
 				if (attempt < maxAttempts)
 				{
-					// Задержка 5 секунд между попытками
-					await Task.Delay(5000);
+					_logger.LogWarning($"Ожидание перед следующей попыткой...");
+					await Task.Delay(2000);
 				}
 			}
 
-			//_logger.Error($"Не удалось подключиться к серверу {host}:{port} за {maxAttempts} попыток.");
-			Console.WriteLine($"Не удалось подключиться к серверу {host}:{port} за {maxAttempts} попыток.");
+			_logger.LogInformation($"Не удалось подключиться к серверу {host}:{port} за {maxAttempts} попыток.");
+			return new ResponceIntegration { Message = "Не удалось подключиться после нескольких попыток", Result = false };
 		}
 	}
 }

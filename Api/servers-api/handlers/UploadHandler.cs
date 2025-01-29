@@ -1,53 +1,68 @@
-﻿using servers_api.Models;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Unicode;
-using System.Text;
+﻿using System.Text;
+using servers_api.models;
 
 namespace servers_api.Handlers
 {
-	    /// <summary>
-	    /// Класс занимается валидацией результатов каждого из процесса настройки интеграции. Их пока насчитыаается 4. 
-	    /// Если все они произошли успешно - тогда результируется модель, которая сообщает клиенту интеграции, что вся интеграция 
-	    /// завершилась успешно.
-	    /// </summary>
-	    public class UploadHandler : IUploadHandler
-	    {
-	        public JsonSerializerOptions GetJsonSerializerOptions()
-	        {
-	            return new JsonSerializerOptions
-	            {
-	                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
-	            };
-	        }
+	/// <summary>
+	/// Класс занимается валидацией результатов каждого из процессов настройки интеграции.
+	/// Если все процессы завершились успешно, возвращается список интеграций с результатами каждого процесса.
+	/// </summary>
+	public class UploadHandler : IUploadHandler
+	{
+		/// <summary>
+		/// Генерирует итоговое сообщение о результатах выполнения процессов интеграции.
+		/// </summary>
+		/// <param name="queueCreationTask">Результат задачи создания очередей брокера</param>
+		/// <param name="senderConnectionTask">Результат задачи соединения согласно выбранного протокола</param>
+		/// <param name="pushTask">Результат задачи обучения BPM</param>
+		/// <param name="receiveTask">Результат задачи получения данных из BPM</param>
+		/// <returns>Список объектов ResponceIntegration с результатами каждого процесса</returns>
+		public List<ResponceIntegration> GenerateResultMessage(
+					ResponceIntegration queueCreationTask = null,
+					ResponceIntegration senderConnectionTask = null,
+					ResponceIntegration pushTask = null,
+					ResponceIntegration receiveTask = null)
+		{
+			var results = new List<(string ProcessName, ResponceIntegration Response)>
+			{
+				("Сервис создания очередей брокера", queueCreationTask),
+				("Сервис соединения согласно выбранного протокола", senderConnectionTask),
+				("Сервис обучения BPM", pushTask),
+				("Получение данных из BPM", receiveTask)
+			};
 
-	        public string GenerateResultMessage(
-	            ResponceIntegration queueCreationTask,
-	            ResponceIntegration senderConnectionTask,
-	            ResponceIntegration apiStatusTask,
-	            ResponceIntegration receiveTask)
-	        {
-	            var results = new List<ResponceIntegration> { queueCreationTask, senderConnectionTask, apiStatusTask, receiveTask };
+			// Создаем список для хранения результатов каждого процесса
+			var responseList = new List<ResponceIntegration>();
 
-	            var successfulResults = results.Where(r => r.Result).ToList();
-	            var failedResults = results.Where(r => !r.Result).ToList();
+			foreach (var (processName, response) in results)
+			{
+				// Генерируем объект ResponceIntegration для каждого процесса
+				var resultMessage = new StringBuilder();
+				if (response == null)
+				{
+					string stringResult = string.IsNullOrEmpty(response?.Message) ? "Нет сообщения." : response.Message;
 
-	            var resultMessage = new StringBuilder();
+					resultMessage.Append($"{processName}: ❌ (Неизвестный результат, сервис не ответил), Сообщение: {stringResult}");
+				}
+				else if (response.Result)
+				{
+					resultMessage.Append($"{processName}: ✅ Успешно, Сообщение: {response.Message}");
+				}
+				else
+				{
+					resultMessage.Append($"{processName}: ❌ Ошибка, Сообщение: {response.Message}");
+				}
 
-	            if (successfulResults.Count == results.Count())
-	            {
-	                resultMessage.Append("Все процессы завершились успешно.");
-	            }
-	            else
-	            {
-	                resultMessage.Append("Некоторые процессы завершились с ошибками:\n");
-	                foreach (var failed in failedResults)
-	                {
-	                    resultMessage.AppendLine($"- {failed.Message}");
-	                }
-	            }
+				// Добавляем результат в список
+				responseList.Add(new ResponceIntegration
+				{
+					Result = response?.Result ?? false, // Успех процесса
+					Message = resultMessage.ToString()   // Сообщение о результате процесса
+				});
+			}
 
-	            return resultMessage.ToString();
-	        }
-	    }
+			// Возвращаем список объектов ResponceIntegration с результатами каждого процесса
+			return responseList;
+		}
+	}
 }

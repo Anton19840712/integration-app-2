@@ -1,12 +1,13 @@
-﻿using servers_api.Models;
+﻿using servers_api.models;
+using servers_api.Models;
 
 namespace servers_api.Services.InternalSystems
 {
-	    /// <summary>
-	    /// Сервис, который является 4 ым по списку в процессе обеспечения интеграции.
-	    /// Он ответственен за обучение bpm: отсылает в нее модель, которая сохраняется в ее базу 
-	    /// </summary>
-	    public interface ITeachService
+	/// <summary>
+	/// Сервис, который является 4 ым по списку в процессе обеспечения интеграции.
+	/// Он ответственен за обучение bpm: отсылает в нее модель, которая сохраняется в ее базу 
+	/// </summary>
+	public interface ITeachService
 	    {
 	        Task<ResponceIntegration> TeachBPMNAsync(CombinedModel model, CancellationToken token);
 	    }

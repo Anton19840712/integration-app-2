@@ -3,8 +3,8 @@ using System.Threading.Channels;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using servers_api.models;
 using servers_api.Models;
-using ILogger = Serilog.ILogger;
 
 namespace servers_api.Services.Brokers
 {
@@ -14,13 +14,13 @@ namespace servers_api.Services.Brokers
 	public class RabbitMqQueueListener : IRabbitMqQueueListener
 	{
 		private readonly IConnectionFactory _connectionFactory;
-		private readonly ILogger _logger;
+		private readonly ILogger<RabbitMqQueueListener> _logger;
 		private IConnection _connection;
 		private IModel _channel;
 		private string _queueName;
 		private readonly Channel<ResponceIntegration> _responseChannel;
 
-		public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger logger)
+		public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger<RabbitMqQueueListener> logger)
 		{
 			_connectionFactory = connectionFactory;
 			_logger = logger;
@@ -50,7 +50,7 @@ namespace servers_api.Services.Brokers
 						string jsonString = mainMessage.IncomingModel.ToString(Formatting.None);
 
 						// Логирование в одном сообщении
-						_logger.Information(
+						_logger.LogInformation(
 							"Получено сообщение из {Queue}:\nId: {Id} \nInQueueName: {InQueueName} \nOutQueueName: {OutQueueName} \nIncomingModel: {IncomingModel}",
 							_queueName,
 							mainMessage.Id,
@@ -67,19 +67,19 @@ namespace servers_api.Services.Brokers
 					}
 					else
 					{
-						_logger.Warning("Получено пустое или некорректное сообщение из {Queue}", _queueName);
+						_logger.LogWarning("Получено пустое или некорректное сообщение из {Queue}", _queueName);
 					}
 				};
 
 				_channel.BasicConsume(queue: _queueName, autoAck: true, consumer: consumer);
-				_logger.Information("Слушатель очереди {Queue} запущен и ожидает сообщений...", _queueName);
+				_logger.LogInformation("Слушатель очереди {Queue} запущен и ожидает сообщений...", _queueName);
 
 				// Чтение из канала и возврат результата при получении сообщения
 				return await _responseChannel.Reader.ReadAsync(stoppingToken);
 			}
 			catch (Exception ex)
 			{
-				_logger.Error(ex, "Ошибка при прослушивании очереди {Queue}", _queueName);
+				_logger.LogError(ex, "Ошибка при прослушивании очереди {Queue}", _queueName);
 				return new ResponceIntegration
 				{
 					Message = $"Ошибка при прослушивании очереди {_queueName}: {ex.Message}",
@@ -95,7 +95,7 @@ namespace servers_api.Services.Brokers
 		{
 			_channel?.Close();
 			_connection?.Close();
-			_logger.Information("Слушатель очереди {Queue} остановлен", _queueName);
+			_logger.LogInformation("Слушатель очереди {Queue} остановлен", _queueName);
 		}
 	}
 }

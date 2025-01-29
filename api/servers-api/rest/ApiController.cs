@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using System.Text;
 using System.Xml;
-using Serilog;
 using Newtonsoft.Json.Linq;
 using RabbitMQ.Client;
 
@@ -13,28 +12,11 @@ namespace servers_api.rest
 	{
 		private readonly IConnection _connection;
 		private readonly IModel _channel;
+		private readonly ILogger<ApiController> _logger;
 
-		public ApiController()
+		public ApiController(ILogger<ApiController> logger)
 		{
-			//Log.Logger = new LoggerConfiguration()
-			//	.WriteTo.Console()
-			//	.WriteTo.Seq("https://seq.pit.protei.ru/")
-			//	.CreateLogger();
-
-			//// Настройка RabbitMQ подключения
-			//var factory = new ConnectionFactory
-			//{
-			//	Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
-			//};
-			//_connection = factory.CreateConnection();
-			//_channel = _connection.CreateModel();
-
-			//// Объявляем очередь для отправки сообщений
-			//_channel.QueueDeclare(queue: "bpmn_queue",
-			//					 durable: true,
-			//					 exclusive: false,
-			//					 autoDelete: false,
-			//					 arguments: null);
+			_logger = logger;
 		}
 
 		[HttpPost]
@@ -44,11 +26,11 @@ namespace servers_api.rest
 			using var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8);
 			var requestBodyAsString = await reader.ReadToEndAsync();
 
-			Log.Information("Received SOAP request: {Request}", requestBodyAsString);
+			_logger.LogInformation("Received SOAP request: {Request}", requestBodyAsString);
 
 			// Преобразование XML в JSON
 			string json = ConvertXmlToJson(requestBodyAsString);
-			Log.Information("Converted JSON: {Json}", json);
+			_logger.LogInformation("Converted JSON: {Json}", json);
 
 			// Отправка JSON в очередь RabbitMQ
 			PublishMessageToQueue(json);
@@ -64,7 +46,7 @@ namespace servers_api.rest
 							 "</soapenv:Body></soapenv:Envelope>";
 
 			await HttpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(payload));
-			Log.Information("Sent SOAP response: {Response}", payload);
+			_logger.LogInformation("Sent SOAP response: {Response}", payload);
 
 			return new EmptyResult();
 		}
@@ -79,7 +61,7 @@ namespace servers_api.rest
 								 basicProperties: null,
 								 body: body);
 
-			Log.Information("Message published to RabbitMQ bpmn_queue: {Message}", jsonMessage);
+			_logger.LogInformation("Message published to RabbitMQ bpmn_queue: {Message}", jsonMessage);
 		}
 
 		private string ConvertXmlToJson(string xml)
