@@ -5,6 +5,7 @@ using servers_api.Services.Parsers;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using JsonException = System.Text.Json.JsonException;
 using servers_api.models.internallayerusage;
+using servers_api.models.configurationsettings;
 public class JsonParsingService : IJsonParsingService
 {
 	private readonly ILogger<JsonParsingService> _logger;
@@ -32,7 +33,8 @@ public class JsonParsingService : IJsonParsingService
 				!jsonBody.TryGetProperty("dataFormat", out var formatData) ||
 				!jsonBody.TryGetProperty("companyName", out var companyNameElement) ||
 				!jsonBody.TryGetProperty("model", out var modelElement) ||
-				!jsonBody.TryGetProperty("dataOptions", out var dataOptionsElement))
+				!jsonBody.TryGetProperty("dataOptions", out var dataOptionsElement) ||
+				!jsonBody.TryGetProperty("connectionSettings", out var connectionSettingsElement))
 			{
 				_logger.LogWarning("Пропущены необходимые поля JSON");
 				throw new ArgumentException("Пропущены необходимые поля JSON");
@@ -53,6 +55,10 @@ public class JsonParsingService : IJsonParsingService
 			var dataOptions = JsonSerializer.Deserialize<DataOptions>(dataOptionsElement.GetRawText());
 			_logger.LogInformation("Свойство dataOptions успешно десериализовано");
 
+			// Десериализация connectionSettings с учетом наследования
+			var connectionSettings = JsonSerializer.Deserialize<ConnectionSettings>(connectionSettingsElement.GetRawText());
+			_logger.LogInformation("Свойство connectionSettings успешно десериализовано");
+
 			// Обработка model в зависимости от dataFormat
 			if (dataFormat == "xml")
 			{
@@ -63,10 +69,10 @@ public class JsonParsingService : IJsonParsingService
 				// Убираем декларацию XML
 				xmlDocument.RemoveChild(xmlDocument.FirstChild);
 
-				//// Конвертируем XML в JSON-строку
+				// Конвертируем XML в JSON-строку
 				jsonString = JsonConvert.SerializeXmlNode(xmlDocument, Newtonsoft.Json.Formatting.None, true);
 
-				//// Десериализуем JSON-строку в JsonElement
+				// Десериализуем JSON-строку в JsonElement
 				_logger.LogInformation("XML успешно конвертирован в JSON");
 			}
 			else
@@ -81,7 +87,8 @@ public class JsonParsingService : IJsonParsingService
 				InQueueName = inQueueName,
 				OutQueueName = outQueueName,
 				InternalModel = jsonString,
-				DataOptions = dataOptions
+				DataOptions = dataOptions,
+				ConnectionSettings = connectionSettings
 			};
 
 			_logger.LogInformation("JSON успешно разобран и преобразован в CombinedModel");

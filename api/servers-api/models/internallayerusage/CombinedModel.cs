@@ -1,4 +1,6 @@
-﻿namespace servers_api.models.internallayerusage
+﻿using servers_api.models.configurationsettings;
+
+namespace servers_api.models.internallayerusage
 {
 	/// <summary>
 	/// Модель для пересылки на bpm для ее обучения работе с новыми структурами данных.
@@ -10,5 +12,6 @@
 		public string Protocol { get; set; }
 		public string InternalModel { get; set; }
 		public DataOptions DataOptions { get; set; }
+		public ConnectionSettings ConnectionSettings { get; set; }
 	}
 }
