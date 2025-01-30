@@ -1,91 +1,62 @@
-﻿using servers_api.factory.abstractions;
-using servers_api.models.internallayerusage;
+﻿using AutoMapper;
+using servers_api.factory.abstractions;
+using servers_api.models.internallayerusage.common;
+using servers_api.models.internallayerusage.instance;
 using servers_api.models.responce;
+using servers_api.Services.Connectors;
 
-namespace servers_api.Services.Connectors
+public class SenderService : ISenderService
 {
-	/// <summary>
-	/// Реализация главного сервиса для настройки подключения согласно указанного протокола.
-	/// </summary>
-	public class SenderService : ISenderService
+	private readonly ILogger<SenderService> _logger;
+	private readonly ProtocolManager _protocolManager;
+	private readonly IMapper _mapper;
+
+	public SenderService(
+		ILogger<SenderService> logger,
+		ProtocolManager protocolManager,
+		IMapper mapper)
 	{
-		private readonly ILogger<SenderService> _logger;
-		private readonly ProtocolManager _protocolManager;
-		public SenderService(
-			ILogger<SenderService> logger,
-			ProtocolManager protocolManager)
+		_logger = logger;
+		_protocolManager = protocolManager;
+		_mapper = mapper;
+	}
+
+	public async Task<ResponceIntegration> UpAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
+	{
+		_logger.LogInformation(
+			"Запуск UpAsync с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
+			parsedModel.Protocol, parsedModel.DataOptions.IsServer, parsedModel.DataOptions.IsClient);
+
+		// Используем AutoMapper для маппинга
+		InstanceModel instanceModel = parsedModel.DataOptions.IsClient
+			? _mapper.Map<ClientInstanceModel>(parsedModel)
+			: _mapper.Map<ServerInstanceModel>(parsedModel);
+
+		if (instanceModel is ClientInstanceModel clientModel)
 		{
-			_logger = logger;
-			_protocolManager = protocolManager;
+			_logger.LogInformation("Настройка клиента с хостом {Host} и портом {Port}", clientModel.Host, clientModel.Port);
+
+			// Передаем всю модель в метод ConfigureAsync
+			var responceIntegration = await _protocolManager.ConfigureAsync(
+				clientModel);
+
+			return responceIntegration;
+		}
+		else if (instanceModel is ServerInstanceModel serverModel)
+		{
+			_logger.LogInformation("Настройка сервера с хостом {Host} и портом {Port}", serverModel.Host, serverModel.Port);
+
+			// Передаем всю модель в метод ConfigureAsync
+			var responceIntegration = await _protocolManager.ConfigureAsync(
+				serverModel);
+
+			return responceIntegration;
 		}
 
-		// Переименованный метод
-		public async Task<ResponceIntegration> UpAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
+		return new ResponceIntegration
 		{
-			_logger.LogInformation(
-				"Запуск UpAsync с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
-				parsedModel.Protocol, parsedModel.DataOptions.IsServer, parsedModel.DataOptions.IsClient);
-
-			var parsedModelProtocol = parsedModel.Protocol.ToUpper();
-			var isServer = parsedModel.DataOptions.IsServer;
-			var isClient = parsedModel.DataOptions.IsClient;
-
-			if (!isServer && !isClient)
-			{
-				_logger.LogWarning("Не указана роль: необходимо указать, является ли процесс клиентом или сервером.");
-				return new ResponceIntegration { Message = "Не указана роль (клиент или сервер)", Result = false };
-			}
-
-			try
-			{
-				if (isServer)
-				{
-					_logger.LogInformation("Настройка сервера с протоколом {Protocol}", parsedModelProtocol);
-
-					var responceIntegration = await _protocolManager.ConfigureAsync(
-						parsedModelProtocol,
-						isServer: true,
-						address: null,
-						host: parsedModel.DataOptions.ServerDetails.Host,
-						port: parsedModel.DataOptions.ServerDetails.Port);
-
-					var result = responceIntegration;
-					return result;
-				}
-				else if (isClient)
-				{
-					_logger.LogInformation(
-						"Настройка клиента для подключения к серверу {ServerIp}:{ServerPort} с протоколом {Protocol}",
-						parsedModel.DataOptions.ServerDetails.Host,
-						parsedModel.DataOptions.ServerDetails.Port,
-						parsedModelProtocol);
-
-					var responceIntegration = await _protocolManager.ConfigureAsync(
-						parsedModelProtocol,
-						isServer: false,
-						address: null,
-						host: parsedModel.DataOptions.ServerDetails.Host,
-						port: parsedModel.DataOptions.ServerDetails.Port);
-
-					var result = responceIntegration;
-					return result;
-				}
-
-				return new ResponceIntegration
-				{
-					Message = "Настройка протокола не была завершена успешно",
-					Result = false
-				};
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, "Ошибка при настройке протокола {Protocol}", parsedModelProtocol);
-				return new ResponceIntegration
-				{
-					Message = $"Ошибка при настройке протокола: {ex.Message}",
-					Result = false
-				};
-			}
-		}
+			Message = "Настройка протокола не была завершена успешно",
+			Result = false
+		};
 	}
 }

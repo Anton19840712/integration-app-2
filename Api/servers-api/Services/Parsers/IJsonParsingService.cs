@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using servers_api.models.internallayerusage;
+using servers_api.models.internallayerusage.common;
 
 namespace servers_api.Services.Parsers
 {

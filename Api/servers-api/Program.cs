@@ -1,78 +1,39 @@
-using Microsoft.Extensions.Configuration;
-using RabbitMQ.Client;
 using Serilog;
-using servers_api.factory.abstractions;
-using servers_api.factory.tcp.instancehandlers;
-using servers_api.factory.tcp.instances;
-using servers_api.factory.tcp.queuesconnections;
-using servers_api.Handlers;
-using servers_api.models.configurationsettings;
-using servers_api.Patterns;
+using servers_api.middleware;
 using servers_api.rest.minimalapi;
-using servers_api.services.brokers.bpmintegration;
-using servers_api.services.brokers.tcprest;
-using servers_api.Services.Connectors;
-using servers_api.Services.InternalSystems;
-using servers_api.Services.Parsers;
 
-Console.Title = "Client API";
+Console.Title = "integration api";
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Настройка логирования
 builder.Host.UseSerilog((ctx, cfg) =>
 {
-	cfg
-	.WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-		//.WriteTo.Seq("https://seq.pit.protei.ru/")
-		//.WriteTo.Seq("http://localhost:5341")
-		.Enrich.FromLogContext()
-		;
+	cfg.WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+	.Enrich.FromLogContext();
 });
 
 try
 {
-	//string port = args.FirstOrDefault(arg => arg.StartsWith("--port="))?.Split('=')[1];
-	//if (string.IsNullOrEmpty(port))
-	//{
-	//	Log.Error("Порт не указан. Пример: MyApp.exe --port=5001");
-	//	return;
-	//}
-
-	//string url = $"http://localhost:{port}";
-	//builder.WebHost.UseUrls(url);
-	//Log.Information("Приложение будет запущено по адресу: {Url}", url);
-
-	// Регистрация сервисов
+	//GateConfiguration.ConfigureDynamicGate(args, builder);
 
 	var services = builder.Services;
 	var configuration = builder.Configuration;
 
-	services.AddScoped<ProtocolManager>(); // Регистрируем ProtocolManager
 	services.AddControllers();
-	services.AddCoreServices();
-	services.AddRabbitMqServices();
+
+	services.AddCommonServices();
+	services.AddHttoServices();
+	services.AddFactoryServices();
 	services.AddApiServices();
+	services.AddRabbitMqServices();
 
-	// Регистрируем TcpServer и TcpClient как сервисы
-	services.AddScoped<TcpServer>();
-	services.AddScoped<TcpClient>();
-
-	// Регистрируем TcpFactory
-	services.AddScoped<TcpFactory>();
-
-	// регистрация конфигураций модели:
-	services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMq"));
-
-	// общее место регистрации сервисов:
-	services.AddScoped<ITcpServerHandler, TcpServerHandler>();
+	services.AddAutoMapper(typeof(MappingProfile));
 
 	Log.Information("Все сервисы успешно зарегистрированы.");
 
-
 	var app = builder.Build();
 
-	// Логирование запросов
 	app.UseSerilogRequestLogging();
 
 	// Использование CORS
@@ -83,8 +44,8 @@ try
 	app.UseSerilogRequestLogging();
 	Log.Information("Логирование HTTP-запросов включено.");
 
-
 	var factory = app.Services.GetRequiredService<ILoggerFactory>();
+
 	// Регистрация конечных точек
 	app.MapControllers();
 	app.MapCommonApiEndpoints(factory);
@@ -104,73 +65,4 @@ finally
 {
 	// Завершение работы логера
 	Log.CloseAndFlush();
-}
-
-static class ServiceCollectionExtensions
-{
-	/// <summary>
-	/// Регистрация базовых сервисов приложения
-	/// </summary>
-	public static IServiceCollection AddCoreServices(this IServiceCollection services)
-	{
-		Log.Information("Регистрация базовых сервисов...");
-		services.AddHttpClient();
-		services.AddHttpContextAccessor();
-		services.AddCors();
-		services.AddHostedService<ResponseListenerService>();
-
-		services.AddTransient<TcpFactory>();
-
-		Log.Information("Базовые сервисы зарегистрированы.");
-		return services;
-	}
-
-	/// <summary>
-	/// Регистрация RabbitMQ сервисов
-	/// </summary>
-	public static IServiceCollection AddRabbitMqServices(this IServiceCollection services)
-	{
-		Log.Information("Инициализация RabbitMQ...");
-		services.AddSingleton<IConnectionFactory>(provider =>
-		{
-			// UNCOMMENT
-			//
-			var factory = new ConnectionFactory
-			{
-
-				HostName = "localhost",
-				Port = 5672,
-				UserName = "guest",
-				Password = "guest"
-			};
-			//var factory = new ConnectionFactory
-			//{
-			//	Uri = new Uri("amqp://admin:admin@172.16.211.18/termidesk")
-			//};
-
-			Log.Information("RabbitMQ настроен: {Host}:{Port}", factory.HostName, factory.Port);
-			return factory;
-		});
-
-		services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
-		services.AddSingleton<IRabbitMqService, RabbitMqService>();
-		Log.Information("Сервисы RabbitMQ зарегистрированы.");
-		return services;
-	}
-
-	/// <summary>
-	/// Регистрация API сервисов
-	/// </summary>
-	public static IServiceCollection AddApiServices(this IServiceCollection services)
-	{
-		Log.Information("Регистрация API-сервисов...");
-		services.AddTransient<IJsonParsingService, JsonParsingService>();
-		services.AddTransient<IRabbitMqQueueManager, RabbitMqQueueManager>();
-		services.AddTransient<ITeachService, TeachService>();
-		services.AddScoped<IUploadService, UploadService>();
-		services.AddTransient<IUploadHandler, UploadHandler>();
-		services.AddScoped<ISenderService, SenderService>();
-		Log.Information("API-сервисы зарегистрированы.");
-		return services;
-	}
 }

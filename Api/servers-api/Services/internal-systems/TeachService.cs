@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
-using servers_api.models.internallayerusage;
+using servers_api.models.internallayerusage.common;
 using servers_api.models.queues;
 using servers_api.models.responce;
 

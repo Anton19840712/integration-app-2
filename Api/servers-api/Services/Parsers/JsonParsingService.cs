@@ -4,8 +4,8 @@ using System.Xml;
 using servers_api.Services.Parsers;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using JsonException = System.Text.Json.JsonException;
-using servers_api.models.internallayerusage;
 using servers_api.models.configurationsettings;
+using servers_api.models.internallayerusage.common;
 public class JsonParsingService : IJsonParsingService
 {
 	private readonly ILogger<JsonParsingService> _logger;
