@@ -1,17 +1,16 @@
 ﻿using servers_api.factory.abstractions;
-using servers_api.models;
-using servers_api.Models;
+using servers_api.models.internallayerusage;
+using servers_api.models.responce;
 
 namespace servers_api.Services.Connectors
 {
 	/// <summary>
-	/// Сервис для настройки подключения через указанный протокол.
+	/// Реализация главного сервиса для настройки подключения согласно указанного протокола.
 	/// </summary>
 	public class SenderService : ISenderService
 	{
 		private readonly ILogger<SenderService> _logger;
 		private readonly ProtocolManager _protocolManager;
-
 		public SenderService(
 			ILogger<SenderService> logger,
 			ProtocolManager protocolManager)

@@ -1,5 +1,5 @@
-﻿using servers_api.models;
-using servers_api.Models;
+﻿using servers_api.models.internallayerusage;
+using servers_api.models.responce;
 
 namespace servers_api.Services.InternalSystems
 {
@@ -8,7 +8,7 @@ namespace servers_api.Services.InternalSystems
 	/// Он ответственен за обучение bpm: отсылает в нее модель, которая сохраняется в ее базу 
 	/// </summary>
 	public interface ITeachService
-	    {
-	        Task<ResponceIntegration> TeachBPMNAsync(CombinedModel model, CancellationToken token);
-	    }
+	{
+		Task<ResponceIntegration> TeachBPMNAsync(CombinedModel model, CancellationToken token);
+	}
 }

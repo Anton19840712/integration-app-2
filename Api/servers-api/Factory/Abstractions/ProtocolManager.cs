@@ -1,4 +1,4 @@
-﻿using servers_api.models;
+﻿using servers_api.models.responce;
 
 namespace servers_api.factory.abstractions
 {
@@ -47,7 +47,7 @@ namespace servers_api.factory.abstractions
 				port = 5000; // Используем порт по умолчанию, если не указан
 			}
 
-			ProtocolFactory factory = protocol switch
+			UpInstanceByProtocolFactory factory = protocol switch
 			{
 				"TCP" => _tcpFactory,
 				_ => throw new ArgumentException($"Unsupported protocol: {protocol}")

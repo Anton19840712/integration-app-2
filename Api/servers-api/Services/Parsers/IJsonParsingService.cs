@@ -1,10 +1,13 @@
 ﻿using System.Text.Json;
-using servers_api.Models;
+using servers_api.models.internallayerusage;
 
 namespace servers_api.Services.Parsers
 {
-	    public interface IJsonParsingService
-	    {
-	        CombinedModel ParseJson(JsonElement jsonBody);
-	    }
+	/// <summary>
+	/// Парсер входящей информации from upload endpoint.
+	/// </summary>
+	public interface IJsonParsingService
+	{
+		CombinedModel ParseJson(JsonElement jsonBody);
+	}
 }

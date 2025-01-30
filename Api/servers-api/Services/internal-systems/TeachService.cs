@@ -1,17 +1,22 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
-using servers_api.models;
-using servers_api.Models;
-using ILogger = Serilog.ILogger;
+using servers_api.models.internallayerusage;
+using servers_api.models.queues;
+using servers_api.models.responce;
 
 namespace servers_api.Services.InternalSystems
 {
+	/// <summary>
+	/// Сервис, ответственный за обучение bpm работе с новыми структурами сообщений.
+	/// </summary>
 	public class TeachService : ITeachService
 	{
 		private readonly IHttpClientFactory _httpClientFactory;
-		private readonly ILogger _logger;
+		private readonly ILogger<TeachService> _logger;
 
-		public TeachService(IHttpClientFactory httpClientFactory, ILogger logger)
+		public TeachService(
+			IHttpClientFactory httpClientFactory,
+			ILogger<TeachService> logger)
 		{
 			_httpClientFactory = httpClientFactory;
 			_logger = logger;
@@ -19,7 +24,7 @@ namespace servers_api.Services.InternalSystems
 
 		public async Task<ResponceIntegration> TeachBPMNAsync(CombinedModel parsedModel, CancellationToken token)
 		{
-			_logger.Information("Начало обработки TeachBPMNAsync");
+			_logger.LogInformation("Начало обработки TeachBPMNAsync");
 
 			var modelForCardSystem = new InMessage
 			{
@@ -42,7 +47,7 @@ namespace servers_api.Services.InternalSystems
 					"application/json"
 				);
 
-				_logger.Information("Отправка POST-запроса на https://localhost:7054/Integration/save");
+				_logger.LogInformation("Отправка POST-запроса на https://localhost:7054/Integration/save");
 
 				// Отправляем POST-запрос с телом
 				// Эти адреса необходимо сделать динамическими
@@ -50,7 +55,7 @@ namespace servers_api.Services.InternalSystems
 
 				if (response.IsSuccessStatusCode)
 				{
-					_logger.Information("Соединение успешно установлено с API, статус-код: {StatusCode}", response.StatusCode);
+					_logger.LogInformation("Соединение успешно установлено с API, статус-код: {StatusCode}", response.StatusCode);
 					return new ResponceIntegration
 					{
 						Message = "API доступен, соединение успешно установлено.",
@@ -59,7 +64,7 @@ namespace servers_api.Services.InternalSystems
 				}
 				else
 				{
-					_logger.Warning("API недоступен, статус-код: {StatusCode}", response.StatusCode);
+					_logger.LogWarning("API недоступен, статус-код: {StatusCode}", response.StatusCode);
 					return new ResponceIntegration
 					{
 						Message = $"API недоступен. Статус-код: {(int)response.StatusCode}",
@@ -69,7 +74,7 @@ namespace servers_api.Services.InternalSystems
 			}
 			catch (HttpRequestException ex)
 			{
-				_logger.Error(ex, "Ошибка при обращении к API");
+				_logger.LogError(ex, "Ошибка при обращении к API");
 				return new ResponceIntegration
 				{
 					Message = $"Ошибка при обращении к API: {ex.Message}",
@@ -78,7 +83,7 @@ namespace servers_api.Services.InternalSystems
 			}
 			catch (Exception ex)
 			{
-				_logger.Error(ex, "Неожиданная ошибка при проверке статуса API");
+				_logger.LogError(ex, "Неожиданная ошибка при проверке статуса API");
 				return new ResponceIntegration
 				{
 					Message = $"Неожиданная ошибка при проверке статуса API: {ex.Message}",

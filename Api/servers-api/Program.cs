@@ -1,11 +1,16 @@
+using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using Serilog;
-using servers_api.factory.tcp;
 using servers_api.factory.abstractions;
+using servers_api.factory.tcp.instancehandlers;
+using servers_api.factory.tcp.instances;
+using servers_api.factory.tcp.queuesconnections;
 using servers_api.Handlers;
+using servers_api.models.configurationsettings;
 using servers_api.Patterns;
-using servers_api.rest;
-using servers_api.Services.Brokers;
+using servers_api.rest.minimalapi;
+using servers_api.services.brokers.bpmintegration;
+using servers_api.services.brokers.tcprest;
 using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
@@ -19,8 +24,8 @@ builder.Host.UseSerilog((ctx, cfg) =>
 {
 	cfg
 	.WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-	   //.WriteTo.Seq("https://seq.pit.protei.ru/")
-	   //.WriteTo.Seq("http://localhost:5341")
+		//.WriteTo.Seq("https://seq.pit.protei.ru/")
+		//.WriteTo.Seq("http://localhost:5341")
 		.Enrich.FromLogContext()
 		;
 });
@@ -39,14 +44,31 @@ try
 	//Log.Information("Приложение будет запущено по адресу: {Url}", url);
 
 	// Регистрация сервисов
-	builder.Services.AddScoped<ProtocolManager>(); // Регистрируем ProtocolManager
 
-	builder.Services.AddControllers();
-	builder.Services.AddCoreServices();
-	builder.Services.AddRabbitMqServices();
-	builder.Services.AddApiServices();
+	var services = builder.Services;
+	var configuration = builder.Configuration;
+
+	services.AddScoped<ProtocolManager>(); // Регистрируем ProtocolManager
+	services.AddControllers();
+	services.AddCoreServices();
+	services.AddRabbitMqServices();
+	services.AddApiServices();
+
+	// Регистрируем TcpServer и TcpClient как сервисы
+	services.AddScoped<TcpServer>();
+	services.AddScoped<TcpClient>();
+
+	// Регистрируем TcpFactory
+	services.AddScoped<TcpFactory>();
+
+	// регистрация конфигураций модели:
+	services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMq"));
+
+	// общее место регистрации сервисов:
+	services.AddScoped<ITcpServerHandler, TcpServerHandler>();
 
 	Log.Information("Все сервисы успешно зарегистрированы.");
+
 
 	var app = builder.Build();
 
@@ -66,7 +88,6 @@ try
 	// Регистрация конечных точек
 	app.MapControllers();
 	app.MapCommonApiEndpoints(factory);
-	app.MapTcpApiEndpoints(factory);
 	Log.Information("Все конечные точки зарегистрированы.");
 
 	// Запуск приложения

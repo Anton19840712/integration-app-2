@@ -1,13 +1,18 @@
 ﻿using System.Text.Json;
 using servers_api.Handlers;
-using servers_api.models;
-using servers_api.Services.Brokers;
+using servers_api.models.responce;
+using servers_api.services.brokers.bpmintegration;
+using servers_api.services.brokers.tcprest;
 using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
 
 namespace servers_api.Patterns
 {
+	/// <summary>
+	/// Общий менеджер-сервис, занимающийся процессингом настройки
+	/// всей инфраструктуры динамического шлюза под отдельную организацию.
+	/// </summary>
 	public class UploadService : IUploadService
 	{
 		private readonly ISenderService _senderService;

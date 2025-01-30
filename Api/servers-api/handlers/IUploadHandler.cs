@@ -1,5 +1,4 @@
-﻿
-using servers_api.models;
+﻿using servers_api.models.responce;
 
 namespace servers_api.Handlers
 {

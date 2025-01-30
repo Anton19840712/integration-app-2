@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
 using Newtonsoft.Json;
 using System.Xml;
-using servers_api.Models;
 using servers_api.Services.Parsers;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using JsonException = System.Text.Json.JsonException;
+using servers_api.models.internallayerusage;
 public class JsonParsingService : IJsonParsingService
 {
 	private readonly ILogger<JsonParsingService> _logger;
@@ -14,8 +14,9 @@ public class JsonParsingService : IJsonParsingService
 		_logger = logger;
 	}
 	/// <summary>
-	/// Просто парсер входящих моделей, внутренняя модель этой модели должна быть передана в teach service, который будет ее отсылать в bpm.
-	/// Так же сервис умеет работать с json или xml.
+	/// Реализация парсера входящих моделей.
+	/// Внутренняя модель внутри входящей должна быть передана в teach service, который будет ее отсылать в bpm.
+	/// Сервис работает с json и xml форматами данных.
 	/// </summary>
 	/// <param name="jsonBody"></param>
 	/// <returns></returns>

@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using servers_api.models;
+using servers_api.models.responce;
 
 namespace servers_api.Handlers
 {
@@ -26,7 +26,7 @@ namespace servers_api.Handlers
 			var results = new List<(string ProcessName, ResponceIntegration Response)>
 			{
 				("Сервис создания очередей брокера", queueCreationTask),
-				("Сервис соединения согласно выбранного протокола", senderConnectionTask),
+				("Сервис запуска сервера/клиента согласно выбранного протокола", senderConnectionTask),
 				("Сервис обучения BPM", pushTask),
 				("Получение данных из BPM", receiveTask)
 			};
