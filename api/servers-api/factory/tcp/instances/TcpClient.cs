@@ -20,8 +20,9 @@ namespace servers_api.factory.tcp.instances
 		public async Task<ResponceIntegration> ConnectToServerAsync(
 			string host,
 			int port,
-			int maxNumberOfCconnectionAttemptsFromClientToServer = 0)
+			int maxNumberOfCconnectionAttemptsFromClientToServer)
 		{
+			maxNumberOfCconnectionAttemptsFromClientToServer = 2;
 			var attempt = 0;
 
 			while (attempt < maxNumberOfCconnectionAttemptsFromClientToServer)
@@ -55,7 +56,11 @@ namespace servers_api.factory.tcp.instances
 			}
 
 			_logger.LogInformation($"Не удалось подключиться к серверу {host}:{port} за {maxNumberOfCconnectionAttemptsFromClientToServer} попыток.");
-			return new ResponceIntegration { Message = "Не удалось подключиться после нескольких попыток", Result = false };
+			return new ResponceIntegration
+			{
+				Message = $"Не удалось подключиться после {attempt} попыток", // Интерполяция строки
+				Result = false
+			};
 		}
 	}
 }

@@ -26,7 +26,7 @@ namespace servers_api.Handlers
 			var results = new List<(string ProcessName, ResponceIntegration Response)>
 			{
 				("Сервис создания очередей брокера", queueCreationTask),
-				("Сервис запуска сервера/клиента согласно выбранного протокола", senderConnectionTask),
+				("Сервис запуска соединения согласно выбранного протокола", senderConnectionTask),
 				("Сервис обучения BPM", pushTask),
 				("Получение данных из BPM", receiveTask)
 			};

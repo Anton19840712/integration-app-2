@@ -10,6 +10,6 @@ namespace servers_api.factory.abstractions
 		Task<ResponceIntegration> ConnectToServerAsync(
 			string host,
 			int port,
-			int maxNumberOfCconnectionAttemptsFromClientToServer = 0);
+			int maxNumberOfCconnectionAttemptsFromClientToServer);
 	}
 }

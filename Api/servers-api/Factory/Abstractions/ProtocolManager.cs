@@ -68,7 +68,7 @@ namespace servers_api.factory.abstractions
 					_logger.LogInformation("Initializing TCP client to connect {Host}:{Port}...", host, port);
 					IUpClient client = factory.CreateClient();
 
-					var result = await client.ConnectToServerAsync(host, port.Value);
+					var result = await client.ConnectToServerAsync(host, port.Value, 0);
 					return result;
 				}
 			}
