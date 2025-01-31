@@ -1,26 +1,20 @@
-﻿namespace servers_api.factory.tcp.queuesconnections
-{
-	using RabbitMQ.Client;
-	using RabbitMQ.Client.Events;
-	using RabbitMQ.Client.Exceptions;
-	using System.Text;
+﻿using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
+using System.Text;
 
+namespace servers_api.factory.tcp.queuesconnections
+{
 	public class RabbitMqService : IRabbitMqService
 	{
-		private readonly ConnectionFactory _factory;
-		private ILogger<RabbitMqService> _logger;
+		private readonly IConnectionFactory _factory;
+		private readonly ILogger<RabbitMqService> _logger;
 		private IConnection _persistentConnection;
 
-		public RabbitMqService(ILogger<RabbitMqService> logger)
+		public RabbitMqService(ILogger<RabbitMqService> logger, IConnectionFactory factory)
 		{
-			_factory = new ConnectionFactory
-			{
-				HostName = "localhost",
-				Port = 5672,
-				UserName = "guest",
-				Password = "guest"
-			};
 			_logger = logger;
+			_factory = factory; // Теперь используем factory из DI-контейнера
 		}
 
 		// Свойство для получения постоянного соединения
@@ -30,10 +24,10 @@
 			{
 				if (_persistentConnection != null)
 					return _persistentConnection;
-
+				// TODO: вынести в конфигурацию
 				var attempt = 0;
-				var maxAttempts = 5;  // Количество попыток подключения
-				var delayMs = 3000;   // Интервал между попытками (3 сек)
+				var maxAttempts = 5;
+				var delayMs = 3000;
 
 				while (attempt < maxAttempts)
 				{
@@ -61,16 +55,11 @@
 			}
 		}
 
-		public ILogger<RabbitMqService> Logger { get; }
-
-
 		// Метод для публикации сообщений
 		public void PublishMessage(string queueName, string message)
 		{
 			using var channel = PersistentConnection.CreateModel();
-
 			channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
-
 			var body = Encoding.UTF8.GetBytes(message);
 			channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
 		}
@@ -85,7 +74,6 @@
 		public async Task<string> WaitForResponse(string queueName, int timeoutMilliseconds = 15000)
 		{
 			using var channel = PersistentConnection.CreateModel();
-
 			channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
 
 			var consumer = new EventingBasicConsumer(channel);
