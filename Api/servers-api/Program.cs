@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using Serilog;
 using servers_api.middleware;
+using servers_api.models.configurationsettings;
 using servers_api.rest.minimalapi;
 
 Console.Title = "integration api";
@@ -26,7 +28,7 @@ try
 	services.AddHttoServices();
 	services.AddFactoryServices();
 	services.AddApiServices();
-	services.AddRabbitMqServices();
+	services.AddRabbitMqServices(configuration);
 
 	services.AddAutoMapper(typeof(MappingProfile));
 
