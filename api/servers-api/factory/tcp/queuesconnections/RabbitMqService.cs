@@ -2,14 +2,16 @@
 {
 	using RabbitMQ.Client;
 	using RabbitMQ.Client.Events;
+	using RabbitMQ.Client.Exceptions;
 	using System.Text;
 
 	public class RabbitMqService : IRabbitMqService
 	{
 		private readonly ConnectionFactory _factory;
+		private ILogger<RabbitMqService> _logger;
 		private IConnection _persistentConnection;
 
-		public RabbitMqService()
+		public RabbitMqService(ILogger<RabbitMqService> logger)
 		{
 			_factory = new ConnectionFactory
 			{
@@ -18,11 +20,49 @@
 				UserName = "guest",
 				Password = "guest"
 			};
+			_logger = logger;
 		}
 
 		// Свойство для получения постоянного соединения
-		private IConnection PersistentConnection =>
-			_persistentConnection ??= _factory.CreateConnection();
+		private IConnection PersistentConnection
+		{
+			get
+			{
+				if (_persistentConnection != null)
+					return _persistentConnection;
+
+				var attempt = 0;
+				var maxAttempts = 5;  // Количество попыток подключения
+				var delayMs = 3000;   // Интервал между попытками (3 сек)
+
+				while (attempt < maxAttempts)
+				{
+					try
+					{
+						_persistentConnection = _factory.CreateConnection();
+						return _persistentConnection;
+					}
+					catch (BrokerUnreachableException ex)
+					{
+						attempt++;
+						_logger.LogWarning($"Попытка {attempt}/{maxAttempts}: не удалось подключиться к RabbitMQ ({ex.Message}).");
+
+						if (attempt == maxAttempts)
+						{
+							_logger.LogError("Исчерпаны все попытки подключения к RabbitMQ.");
+							throw;
+						}
+
+						Thread.Sleep(delayMs);
+					}
+				}
+
+				throw new InvalidOperationException("Не удалось установить соединение с RabbitMQ.");
+			}
+		}
+
+		public ILogger<RabbitMqService> Logger { get; }
+
 
 		// Метод для публикации сообщений
 		public void PublishMessage(string queueName, string message)
