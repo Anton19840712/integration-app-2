@@ -1,4 +1,5 @@
-﻿using servers_api.factory.abstractions;
+﻿using System.Text;
+using servers_api.factory.abstractions;
 using servers_api.models.internallayerusage.instance;
 using servers_api.models.responce;
 
@@ -17,7 +18,6 @@ namespace servers_api.factory.tcp.instances
 			_logger.LogInformation("TcpClient instance created.");
 		}
 
-		// Метод для подключения к серверу с логированием и повторными попытками
 		public async Task<ResponceIntegration> ConnectToServerAsync(
 			ClientInstanceModel instanceModel,
 			CancellationToken token)
@@ -39,6 +39,7 @@ namespace servers_api.factory.tcp.instances
 					if (client.Connected)
 					{
 						_logger.LogInformation($"Успешно подключено к серверу {instanceModel.Host}:{instanceModel.Port}");
+						_ = Task.Run(() => ReceiveMessagesAsync(client, token), token);
 						return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 					}
 				}
@@ -57,21 +58,52 @@ namespace servers_api.factory.tcp.instances
 			_logger.LogInformation($"Не удалось подключиться к серверу {instanceModel.Host}:{instanceModel.Port} за {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer} попыток.");
 			return new ResponceIntegration
 			{
-				Message = $"Не удалось подключиться после {attempt} попыток", // Интерполяция строки
+				Message = $"Не удалось подключиться после {attempt} попыток",
 				Result = false
 			};
 		}
 
-		// Какие параметры тебе необходимы для того, чтобы подключиться к сетевой шине
-		// Название очереди, в которую ты будешь писать? Либо это будет запись на приземление, а там background service будет подхватывать эти данные
-		// И пробрасывать их в сетевую шину?
-		// Давай попробуем реализовать эту стратегию, думаю, она будет более объективна для тех сообщений, которые будут отсылаться именно через сервер
-		// В сетевую шину, далее из этой базы сообщение после приземления сразу же должно подхватываться background service и отправляться в саму сетевую шину
-		// Кто будет приземлять данные: клиент или сервер
-		// Если я сервер, тогда я хожу за данным в bpm.
-		// И возвращаю их на сторонний клиент
-		// Если я клиент, я получаю данные с внешнего сервера, приземляю их в свою базу данных и оттуда их уже публикую.
-		// Тебе нужен сервис, который будет получать данные в рамках этого соединения и заливать их в сетевую шину.
-		// Приземлять данные будем в eventdb store.
+		private async Task ReceiveMessagesAsync(System.Net.Sockets.TcpClient client, CancellationToken token)
+		{
+			using var stream = client.GetStream();
+			var buffer = new byte[1024];
+
+			while (!token.IsCancellationRequested)
+			{
+				try
+				{
+					int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token);
+					if (bytesRead == 0)
+					{
+						_logger.LogWarning("Соединение с сервером закрыто.");
+						break;
+					}
+
+					string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+					_logger.LogInformation($"Получено сообщение от сервера: {message}");
+				}
+				catch (Exception ex)
+				{
+					_logger.LogError($"Ошибка при чтении данных: {ex.Message}");
+					break;
+				}
+			}
+
+			client.Close();
+		}
 	}
 }
+
+// Какие параметры тебе необходимы для того, чтобы подключиться к сетевой шине
+// Название очереди, в которую ты будешь писать? Либо это будет запись на приземление, а там background service будет подхватывать эти данные
+// И пробрасывать их в сетевую шину?
+// Давай попробуем реализовать эту стратегию, думаю, она будет более объективна для тех сообщений, которые будут отсылаться именно через сервер
+// В сетевую шину, далее из этой базы сообщение после приземления сразу же должно подхватываться background service и отправляться в саму сетевую шину
+// Кто будет приземлять данные: клиент или сервер
+// Если я сервер, тогда я хожу за данным в bpm.
+// И возвращаю их на сторонний клиент
+// Если я клиент, я получаю данные с внешнего сервера, приземляю их в свою базу данных и оттуда их уже публикую.
+// Тебе нужен сервис, который будет получать данные в рамках этого соединения и заливать их в сетевую шину.
+// Приземлять данные будем в eventdb store.
+
+
