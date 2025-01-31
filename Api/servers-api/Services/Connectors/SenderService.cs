@@ -8,12 +8,12 @@ using servers_api.Services.Connectors;
 public class SenderService : ISenderService
 {
 	private readonly ILogger<SenderService> _logger;
-	private readonly ProtocolManager _protocolManager;
+	private readonly IProtocolManager _protocolManager;
 	private readonly IMapper _mapper;
 
 	public SenderService(
 		ILogger<SenderService> logger,
-		ProtocolManager protocolManager,
+		IProtocolManager protocolManager,
 		IMapper mapper)
 	{
 		_logger = logger;
