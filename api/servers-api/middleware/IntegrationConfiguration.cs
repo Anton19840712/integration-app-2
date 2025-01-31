@@ -18,8 +18,8 @@ namespace servers_api.middleware
 
 			services.AddTransient<IJsonParsingService, JsonParsingService>();
 			services.AddTransient<ITeachService, TeachService>();
-			services.AddScoped<IUploadService, UploadService>();
-			services.AddScoped<ISenderService, SenderService>();
+			services.AddTransient<ISenderService, SenderService>();
+			services.AddTransient<IUploadService, UploadService>();
 
 			services.AddTransient<IUploadHandler, UploadHandler>();
 
