@@ -1,4 +1,5 @@
 ﻿using servers_api.factory.abstractions;
+using servers_api.models.internallayerusage.instance;
 using servers_api.models.responce;
 
 namespace servers_api.factory.tcp.instances
@@ -16,30 +17,28 @@ namespace servers_api.factory.tcp.instances
 			_logger.LogInformation("TcpClient instance created.");
 		}
 
-		// Метод для подключения к серверу с логированием и повторными попытками:
+		// Метод для подключения к серверу с логированием и повторными попытками
 		public async Task<ResponceIntegration> ConnectToServerAsync(
-			string host,
-			int port,
-			int maxNumberOfCconnectionAttemptsFromClientToServer)
+			ClientInstanceModel instanceModel,
+			CancellationToken token)
 		{
-			maxNumberOfCconnectionAttemptsFromClientToServer = 2;
 			var attempt = 0;
 
-			while (attempt < maxNumberOfCconnectionAttemptsFromClientToServer)
+			while (attempt < instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer)
 			{
-				attempt++; // Увеличиваем счетчик попыток перед выполнением логики
+				attempt++;
 
 				try
 				{
-					_logger.LogInformation($"Попытка подключения к серверу {host}:{port}," +
-						$" попытка {attempt} из {maxNumberOfCconnectionAttemptsFromClientToServer}...");
+					_logger.LogInformation($"Попытка подключения к серверу " +
+						$"{instanceModel.Host}:{instanceModel.Port}, попытка {attempt} из {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer}...");
 
-					using var client = new System.Net.Sockets.TcpClient();
-					await client.ConnectAsync(host, port);
+					var client = new System.Net.Sockets.TcpClient();
+					await client.ConnectAsync(instanceModel.Host, instanceModel.Port);
 
 					if (client.Connected)
 					{
-						_logger.LogInformation($"Успешно подключено к серверу {host}:{port}");
+						_logger.LogInformation($"Успешно подключено к серверу {instanceModel.Host}:{instanceModel.Port}");
 						return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 					}
 				}
@@ -48,19 +47,31 @@ namespace servers_api.factory.tcp.instances
 					_logger.LogError($"Ошибка при подключении: {ex.Message}");
 				}
 
-				if (attempt < maxNumberOfCconnectionAttemptsFromClientToServer)
+				if (attempt < instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer)
 				{
 					_logger.LogWarning($"Ожидание перед следующей попыткой...");
-					await Task.Delay(2000);
+					await Task.Delay(instanceModel.ClientConnectionSettings.ConnectionTimeoutMs, token);
 				}
 			}
 
-			_logger.LogInformation($"Не удалось подключиться к серверу {host}:{port} за {maxNumberOfCconnectionAttemptsFromClientToServer} попыток.");
+			_logger.LogInformation($"Не удалось подключиться к серверу {instanceModel.Host}:{instanceModel.Port} за {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer} попыток.");
 			return new ResponceIntegration
 			{
 				Message = $"Не удалось подключиться после {attempt} попыток", // Интерполяция строки
 				Result = false
 			};
 		}
+
+		// Какие параметры тебе необходимы для того, чтобы подключиться к сетевой шине
+		// Название очереди, в которую ты будешь писать? Либо это будет запись на приземление, а там background service будет подхватывать эти данные
+		// И пробрасывать их в сетевую шину?
+		// Давай попробуем реализовать эту стратегию, думаю, она будет более объективна для тех сообщений, которые будут отсылаться именно через сервер
+		// В сетевую шину, далее из этой базы сообщение после приземления сразу же должно подхватываться background service и отправляться в саму сетевую шину
+		// Кто будет приземлять данные: клиент или сервер
+		// Если я сервер, тогда я хожу за данным в bpm.
+		// И возвращаю их на сторонний клиент
+		// Если я клиент, я получаю данные с внешнего сервера, приземляю их в свою базу данных и оттуда их уже публикую.
+		// Тебе нужен сервис, который будет получать данные в рамках этого соединения и заливать их в сетевую шину.
+		// Приземлять данные будем в eventdb store.
 	}
 }

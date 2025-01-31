@@ -13,6 +13,7 @@ namespace servers_api.factory.tcp.instancehandlers
 		}
 		public async Task WaitForClientAsync(
 			TcpListener listener,
+			int BusResponseWaitTimeMs,
 			CancellationToken cancellationToken)
 		{
 			try

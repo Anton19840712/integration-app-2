@@ -3,6 +3,7 @@ using System.Net;
 using servers_api.factory.abstractions;
 using servers_api.factory.tcp.instancehandlers;
 using servers_api.models.responce;
+using servers_api.models.internallayerusage.instance;
 
 namespace servers_api.factory.tcp.instances
 {
@@ -21,58 +22,74 @@ namespace servers_api.factory.tcp.instances
 		}
 
 		public async Task<ResponceIntegration> UpServerAsync(
-			string host,
-			int? port,
-			CancellationToken cancellationToken = default)
+	ServerInstanceModel instanceModel,
+	CancellationToken cancellationToken = default)
 		{
-			if (string.IsNullOrWhiteSpace(host))
+			if (string.IsNullOrWhiteSpace(instanceModel.Host))
 				return new ResponceIntegration { Message = "Host cannot be null or empty.", Result = false };
 
-			if (!port.HasValue)
+			if (instanceModel.Port == 0)
 			{
 				_logger.LogError("Port is not specified. Unable to start the server.");
 				return new ResponceIntegration { Message = "Port is not specified.", Result = false };
 			}
 
-			if (!IPAddress.TryParse(host, out var ipAddress))
+			if (!IPAddress.TryParse(instanceModel.Host, out var ipAddress))
 			{
-				_logger.LogError("Invalid host address: {Host}", host);
+				_logger.LogError("Invalid host address: {Host}", instanceModel.Host);
 				return new ResponceIntegration { Message = "Invalid host address.", Result = false };
 			}
 
-			var listener = new TcpListener(ipAddress, port.Value);
-
+			var listener = new TcpListener(ipAddress, instanceModel.Port);
 			try
 			{
 				listener.Start();
-				_logger.LogInformation("TCP server started on {Host}:{Port}", host, port);
+				_logger.LogInformation("TCP server started on {Host}:{Port}", instanceModel.Host, instanceModel.Port);
 
-				// Возвращаем успешный ответ о запуске сервера
-				var serverStartedTask = Task.Run(async () => await _tcpServerHandler.WaitForClientAsync(listener, cancellationToken));
+				// Используем настройки из instanceModel.ServerConnectionSettings
+				var serverSettings = instanceModel.ServerConnectionSettings;
 
-				// Устанавливаем таймаут на ожидание
-				var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
-
-				// Ожидаем либо подключения, либо таймаута
-				var completedTask = await Task.WhenAny(serverStartedTask, timeoutTask);
-
-				if (completedTask == timeoutTask)
+				// Пробуем несколько раз подключиться
+				for (int attempt = 1; attempt <= serverSettings.AttemptsToFindBus; attempt++)
 				{
-					// Таймаут: сервер успешно запустился, но клиент не подключился в течение времени
-					_logger.LogInformation("No client connected within the timeout period.");
-					return new ResponceIntegration
+					try
 					{
-						Message = "Server started, but no client connected within the timeout period.",
-						Result = true
-					};
+						var serverStartedTask = Task.Run(async () =>
+						{
+							await _tcpServerHandler.WaitForClientAsync(listener, serverSettings.BusResponseWaitTimeMs, cancellationToken);
+						});
+
+						// Устанавливаем таймаут для ожидания клиента
+						var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(serverSettings.BusIdleTimeoutMs), cancellationToken);
+
+						// Ожидаем либо подключения, либо таймаута
+						var completedTask = await Task.WhenAny(serverStartedTask, timeoutTask);
+
+						if (completedTask == timeoutTask)
+						{
+							_logger.LogInformation("No client connected within the timeout period.");
+							return new ResponceIntegration
+							{
+								Message = "Server started, but no client connected within the timeout period.",
+								Result = true
+							};
+						}
+
+						// Если клиент подключился
+						return new ResponceIntegration
+						{
+							Message = "Server started and waiting for client connections.",
+							Result = true
+						};
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Error during connection attempt {Attempt}", attempt);
+						await Task.Delay(serverSettings.BusReconnectDelayMs); // Задержка перед следующей попыткой
+					}
 				}
 
-				// Если клиент подключился
-				return new ResponceIntegration
-				{
-					Message = "Server started and waiting for client connections.",
-					Result = true
-				};
+				return new ResponceIntegration { Message = "Failed to connect after multiple attempts.", Result = false };
 			}
 			catch (Exception ex)
 			{

@@ -1,4 +1,5 @@
-﻿using servers_api.models.responce;
+﻿using servers_api.models.internallayerusage.instance;
+using servers_api.models.responce;
 
 namespace servers_api.factory.abstractions
 {
@@ -8,8 +9,7 @@ namespace servers_api.factory.abstractions
 	public interface IUpClient
 	{
 		Task<ResponceIntegration> ConnectToServerAsync(
-			string host,
-			int port,
-			int maxNumberOfCconnectionAttemptsFromClientToServer);
+			ClientInstanceModel instanceModel,
+			CancellationToken cancellationToken);
 	}
 }
