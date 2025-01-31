@@ -34,6 +34,8 @@ namespace servers_api.factory.tcp.queuesconnections
 					try
 					{
 						_persistentConnection = _factory.CreateConnection();
+
+						_logger.LogInformation($"Попытка установления подключения к сетевой шине успешна.");
 						return _persistentConnection;
 					}
 					catch (BrokerUnreachableException ex)
@@ -43,7 +45,7 @@ namespace servers_api.factory.tcp.queuesconnections
 
 						if (attempt == maxAttempts)
 						{
-							_logger.LogError("Исчерпаны все попытки подключения к RabbitMQ.");
+							_logger.LogError("Исчерпаны все попытки подключения к RabbitMQ. Ты че, docker не запустил?");
 							throw;
 						}
 
