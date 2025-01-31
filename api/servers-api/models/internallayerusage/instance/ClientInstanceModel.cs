@@ -1,4 +1,5 @@
 ﻿using servers_api.models.configurationsettings;
+using servers_api.models.internallayerusage.common;
 
 namespace servers_api.models.internallayerusage.instance
 {
@@ -10,5 +11,6 @@ namespace servers_api.models.internallayerusage.instance
 		public string Host { get; set; }
 		public int Port { get; set; }
 		public ClientSettings ClientConnectionSettings { get; set; }
+		public ConnectionEndpoint ServerHostPort { get; set; }
 	}
 }

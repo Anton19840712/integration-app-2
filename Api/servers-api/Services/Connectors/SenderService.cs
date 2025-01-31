@@ -24,7 +24,7 @@ public class SenderService : ISenderService
 	public async Task<ResponceIntegration> UpAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
 	{
 		_logger.LogInformation(
-			"Запуск UpAsync с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
+			"Запуск UpAsync метода с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
 			parsedModel.Protocol, parsedModel.DataOptions.IsServer, parsedModel.DataOptions.IsClient);
 
 		// Используем AutoMapper для маппинга

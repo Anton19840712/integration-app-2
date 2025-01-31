@@ -14,10 +14,12 @@ namespace servers_api.middleware
 		{
 			Log.Information("Регистрация factory сервисов...");
 
+			services.AddTransient<UpInstanceByProtocolFactory, TcpFactory>();
 			services.AddTransient<IProtocolManager, ProtocolManager>();
-			services.AddTransient<TcpFactory>();
+
 			services.AddTransient<TcpServer>();
 			services.AddTransient<TcpClient>();
+
 			services.AddTransient<ITcpServerHandler, TcpServerHandler>();
 
 			Log.Information("Factory сервисы зарегистрированы.");

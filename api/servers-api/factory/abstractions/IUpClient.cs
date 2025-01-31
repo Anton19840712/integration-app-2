@@ -10,6 +10,8 @@ namespace servers_api.factory.abstractions
 	{
 		Task<ResponceIntegration> ConnectToServerAsync(
 			ClientInstanceModel instanceModel,
+			string serverHost,
+			int serverPort,
 			CancellationToken cancellationToken);
 	}
 }

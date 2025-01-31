@@ -1,7 +1,7 @@
 ﻿namespace servers_api.factory.abstractions
 {
 	/// <summary>
-	/// Интерфейс фабрики создания сервера или клиента согласно выбранного протокола.
+	/// Абстрактный класс создания сервера или клиента согласно выбранного протокола.
 	/// </summary>
 	public abstract class UpInstanceByProtocolFactory
 	{

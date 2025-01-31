@@ -20,6 +20,8 @@ namespace servers_api.factory.tcp.instances
 
 		public async Task<ResponceIntegration> ConnectToServerAsync(
 			ClientInstanceModel instanceModel,
+			string serverHost,
+			int serverPort,
 			CancellationToken token)
 		{
 			var attempt = 0;
@@ -31,14 +33,14 @@ namespace servers_api.factory.tcp.instances
 				try
 				{
 					_logger.LogInformation($"Попытка подключения к серверу " +
-						$"{instanceModel.Host}:{instanceModel.Port}, попытка {attempt} из {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer}...");
+						$"{serverHost}:{serverPort}, попытка {attempt} из {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer}...");
 
 					var client = new System.Net.Sockets.TcpClient();
-					await client.ConnectAsync(instanceModel.Host, instanceModel.Port);
+					await client.ConnectAsync(serverHost, serverPort);
 
 					if (client.Connected)
 					{
-						_logger.LogInformation($"Успешно подключено к серверу {instanceModel.Host}:{instanceModel.Port}");
+						_logger.LogInformation($"Успешно подключено к серверу {serverHost}:{serverPort}");
 						_ = Task.Run(() => ReceiveMessagesAsync(client, token), token);
 						return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 					}
@@ -55,7 +57,7 @@ namespace servers_api.factory.tcp.instances
 				}
 			}
 
-			_logger.LogInformation($"Не удалось подключиться к серверу {instanceModel.Host}:{instanceModel.Port} за {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer} попыток.");
+			_logger.LogInformation($"Не удалось подключиться к серверу {serverHost}:{serverPort} за {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer} попыток.");
 			return new ResponceIntegration
 			{
 				Message = $"Не удалось подключиться после {attempt} попыток",
@@ -94,16 +96,5 @@ namespace servers_api.factory.tcp.instances
 	}
 }
 
-// Какие параметры тебе необходимы для того, чтобы подключиться к сетевой шине
-// Название очереди, в которую ты будешь писать? Либо это будет запись на приземление, а там background service будет подхватывать эти данные
-// И пробрасывать их в сетевую шину?
-// Давай попробуем реализовать эту стратегию, думаю, она будет более объективна для тех сообщений, которые будут отсылаться именно через сервер
-// В сетевую шину, далее из этой базы сообщение после приземления сразу же должно подхватываться background service и отправляться в саму сетевую шину
-// Кто будет приземлять данные: клиент или сервер
-// Если я сервер, тогда я хожу за данным в bpm.
-// И возвращаю их на сторонний клиент
-// Если я клиент, я получаю данные с внешнего сервера, приземляю их в свою базу данных и оттуда их уже публикую.
-// Тебе нужен сервис, который будет получать данные в рамках этого соединения и заливать их в сетевую шину.
-// Приземлять данные будем в eventdb store.
 
 

@@ -11,6 +11,9 @@ namespace servers_api.models.internallayerusage.common
 		public bool IsServer { get; set; }
 
 		[JsonPropertyName("serverDetails")]
-		public ConnectionDetails ServerDetails { get; set; }
+		public ConnectionEndpoint ServerDetails { get; set; }
+
+		[JsonPropertyName("clientDetails")]
+		public ConnectionEndpoint ClientDetails { get; set; }
 	}
 }

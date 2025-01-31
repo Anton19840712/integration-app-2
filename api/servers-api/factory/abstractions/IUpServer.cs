@@ -5,7 +5,7 @@ namespace servers_api.factory.abstractions
 {
 	public interface IUpServer
 	{
-	    Task<ResponceIntegration> UpServerAsync(
+		Task<ResponceIntegration> UpServerAsync(
 			ServerInstanceModel instanceModel,
 			CancellationToken cancellationToken);
 	}

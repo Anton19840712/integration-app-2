@@ -5,20 +5,27 @@ namespace servers_api.factory.abstractions
 {
 	/// <summary>
 	/// Класс, который поднимает в динамическом шлюзе
-	/// согласно входящей информации либо клиент, либо сервер определенного соединения.
+	/// согласно входящей информации либо клиент, либо сервер определенного вида соединения.
 	/// </summary>
 	public class ProtocolManager : IProtocolManager
 	{
+		private readonly UpInstanceByProtocolFactory _protocolFactory;
+		private readonly ILogger<ProtocolManager> _logger;
+
+		public ProtocolManager(UpInstanceByProtocolFactory protocolFactory, ILogger<ProtocolManager> logger)
+		{
+			_protocolFactory = protocolFactory;
+			_logger = logger;
+		}
+
 		public async Task<ResponceIntegration> ConfigureAsync(InstanceModel instanceModel)
 		{
 			if (instanceModel is ClientInstanceModel clientModel)
 			{
-				// Логика для клиента
 				return await ConfigureClientAsync(clientModel);
 			}
 			else if (instanceModel is ServerInstanceModel serverModel)
 			{
-				// Логика для сервера
 				return await ConfigureServerAsync(serverModel);
 			}
 
@@ -29,20 +36,28 @@ namespace servers_api.factory.abstractions
 			};
 		}
 
-		private Task<ResponceIntegration> ConfigureClientAsync(ClientInstanceModel clientModel)
+		private async Task<ResponceIntegration> ConfigureClientAsync(ClientInstanceModel clientModel)
 		{
-			// Логика для настройки клиента
-			// Здесь используется clientModel.Host, clientModel.Port и другие параметры
-			return Task.FromResult(new ResponceIntegration { Result = true });
+			var client = _protocolFactory.CreateClient();
+
+			var serverHost = clientModel.ServerHostPort.Host;
+			var serverPort = clientModel.ServerHostPort.Port ?? 80;
+
+			_logger.LogInformation("Настройка клиента {Protocol} для подключения к серверу по адресу {Host}:{Port}",
+				clientModel.Protocol, serverHost, serverPort);
+
+			using var cts = new CancellationTokenSource(clientModel.ClientConnectionSettings.ConnectionTimeoutMs);
+			return await client.ConnectToServerAsync(clientModel, serverHost, serverPort, cts.Token);
 		}
 
-		private Task<ResponceIntegration> ConfigureServerAsync(ServerInstanceModel serverModel)
+		private async Task<ResponceIntegration> ConfigureServerAsync(ServerInstanceModel serverModel)
 		{
-			// Логика для настройки сервера
-			// Здесь используется serverModel.Host, serverModel.Port и другие параметры
-			return Task.FromResult(new ResponceIntegration { Result = true });
+			var server = _protocolFactory.CreateServer();
+			_logger.LogInformation("Запуск сервера {Protocol} на {Host}:{Port}",
+				serverModel.Protocol, serverModel.Host, serverModel.Port);
+
+			using var cts = new CancellationTokenSource(serverModel.ServerConnectionSettings.BusIdleTimeoutMs);
+			return await server.UpServerAsync(serverModel, cts.Token);
 		}
 	}
 }
-
-

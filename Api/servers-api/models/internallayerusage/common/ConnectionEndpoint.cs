@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace servers_api.models.internallayerusage.common
 {
-	public class ConnectionDetails
+	public class ConnectionEndpoint
 	{
 		[JsonPropertyName("host")]
 		public string Host { get; set; }
