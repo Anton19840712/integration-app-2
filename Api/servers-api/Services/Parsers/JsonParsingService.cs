@@ -26,9 +26,10 @@ public class JsonParsingService : IJsonParsingService
 	public CombinedModel ParseJson(JsonElement jsonBody)
 	{
 		_logger.LogInformation("Начало разбора JSON");
-		string jsonString = null;
+
 		try
 		{
+			// Проверка наличия всех обязательных полей
 			if (!jsonBody.TryGetProperty("protocol", out var protocolElement) ||
 				!jsonBody.TryGetProperty("dataFormat", out var formatData) ||
 				!jsonBody.TryGetProperty("companyName", out var companyNameElement) ||
@@ -36,51 +37,51 @@ public class JsonParsingService : IJsonParsingService
 				!jsonBody.TryGetProperty("dataOptions", out var dataOptionsElement) ||
 				!jsonBody.TryGetProperty("connectionSettings", out var connectionSettingsElement))
 			{
-				_logger.LogWarning("Пропущены необходимые поля JSON");
-				throw new ArgumentException("Пропущены необходимые поля JSON");
+				_logger.LogWarning("Пропущены обязательные поля JSON");
+				throw new ArgumentException("Пропущены обязательные поля JSON");
 			}
 
+			// Десериализация вложенных объектов в connectionSettings
+			var clientSettings = JsonSerializer.Deserialize<ClientSettings>(connectionSettingsElement.GetProperty("clientSettings").GetRawText());
+			var serverSettings = JsonSerializer.Deserialize<ServerSettings>(connectionSettingsElement.GetProperty("serverSettings").GetRawText());
+
+			var connectionSettings = new ConnectionSettings
+			{
+				ClientConnectionSettings = clientSettings,
+				ServerConnectionSettings = serverSettings
+			};
+
+			// Получение простых значений
 			var protocol = protocolElement.GetString();
 			var dataFormat = formatData.GetString();
 			var companyName = companyNameElement.GetString();
 			var inQueueName = $"{companyName}_in";
 			var outQueueName = $"{companyName}_out";
 
-			// Преобразуем JsonElement в строку без лишних переносов строк и пробелов
-			jsonString = JsonSerializer.Serialize(modelElement);
-
-			_logger.LogInformation("Будут созданы очереди: {InQueueName}, {OutQueueName}", inQueueName, outQueueName);
-
 			// Десериализация dataOptions
 			var dataOptions = JsonSerializer.Deserialize<DataOptions>(dataOptionsElement.GetRawText());
-			_logger.LogInformation("Свойство dataOptions успешно десериализовано");
-
-			// Десериализация connectionSettings с учетом наследования
-			var connectionSettings = JsonSerializer.Deserialize<ConnectionSettings>(connectionSettingsElement.GetRawText());
-			_logger.LogInformation("Свойство connectionSettings успешно десериализовано");
 
 			// Обработка model в зависимости от dataFormat
+			string jsonString = null;
 			if (dataFormat == "xml")
 			{
-				// Парсим XML и конвертируем в JSON, убираем метаинформацию
+				// Парсим XML и конвертируем в JSON
 				var xmlDocument = new XmlDocument();
-				xmlDocument.LoadXml(modelElement.GetString());
+				xmlDocument.LoadXml(modelElement.ToString());
+				xmlDocument.RemoveChild(xmlDocument.FirstChild); // Убираем декларацию XML
 
-				// Убираем декларацию XML
-				xmlDocument.RemoveChild(xmlDocument.FirstChild);
-
-				// Конвертируем XML в JSON-строку
+				// Конвертируем XML в JSON
 				jsonString = JsonConvert.SerializeXmlNode(xmlDocument, Newtonsoft.Json.Formatting.None, true);
-
-				// Десериализуем JSON-строку в JsonElement
 				_logger.LogInformation("XML успешно конвертирован в JSON");
 			}
 			else
 			{
 				// Если dataFormat не XML, считаем, что model уже JSON
+				jsonString = modelElement.ToString();
 				_logger.LogInformation("Модель в JSON формате успешно загружена");
 			}
 
+			// Создание комбинированной модели
 			var combinedModel = new CombinedModel
 			{
 				Protocol = protocol,
@@ -88,7 +89,8 @@ public class JsonParsingService : IJsonParsingService
 				OutQueueName = outQueueName,
 				InternalModel = jsonString,
 				DataOptions = dataOptions,
-				ConnectionSettings = connectionSettings
+				ConnectionSettings = connectionSettings,
+				DataFormat = dataFormat,
 			};
 
 			_logger.LogInformation("JSON успешно разобран и преобразован в CombinedModel");
