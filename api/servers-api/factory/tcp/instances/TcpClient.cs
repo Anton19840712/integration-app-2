@@ -57,7 +57,8 @@ namespace servers_api.factory.tcp.instances
 					// Отправляем приветственное сообщение серверу
 					await SendWelcomeMessageAsync(client);
 
-					// Запускаем получение сообщений в фоновом потоке
+					// Начинаем слушать сообщения от сервера
+					_logger.LogInformation("Запуск фонового процесса чтения сообщений...");
 					_ = Task.Run(() => ReceiveMessagesAsync(client, token), token);
 
 					return new ResponceIntegration { Message = "Успешное подключение", Result = true };
@@ -98,8 +99,10 @@ namespace servers_api.factory.tcp.instances
 
 		private async Task ReceiveMessagesAsync(System.Net.Sockets.TcpClient client, CancellationToken token)
 		{
-			using var stream = client.GetStream();
+			var stream = client.GetStream();
 			var buffer = new byte[1024];
+
+			_logger.LogInformation("Ожидание сообщений от сервера...");
 
 			while (!token.IsCancellationRequested)
 			{
@@ -121,8 +124,6 @@ namespace servers_api.factory.tcp.instances
 					break;
 				}
 			}
-
-			client.Close();
 		}
 	}
 }
