@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace servers_api.models.internallayerusage.common
+namespace servers_api.models.internallayer.common
 {
 	public class ConnectionEndpoint
 	{

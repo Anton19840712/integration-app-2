@@ -1,6 +1,6 @@
 ﻿using servers_api.models.configurationsettings;
 
-namespace servers_api.models.internallayerusage.instance
+namespace servers_api.models.internallayer.instance
 {
 	/// <summary>
 	/// Модель для сервера

@@ -1,8 +1,8 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
-using servers_api.models.internallayerusage.common;
+using servers_api.models.internallayer.common;
 using servers_api.models.queues;
-using servers_api.models.responce;
+using servers_api.models.responces;
 
 namespace servers_api.Services.InternalSystems
 {

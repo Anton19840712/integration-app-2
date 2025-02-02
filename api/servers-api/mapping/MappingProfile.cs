@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using servers_api.models.internallayerusage.common;
-using servers_api.models.internallayerusage.instance;
+using servers_api.models.internallayer.common;
+using servers_api.models.internallayer.instance;
 
 public class MappingProfile : Profile
 {

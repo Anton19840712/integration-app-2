@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using servers_api.models.responce;
+using servers_api.models.responces;
 using servers_api.services.brokers.tcprest;
 
 public class RabbitMqQueueManager : IRabbitMqQueueManager

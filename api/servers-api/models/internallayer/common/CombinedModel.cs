@@ -1,6 +1,6 @@
 ﻿using servers_api.models.configurationsettings;
 
-namespace servers_api.models.internallayerusage.common
+namespace servers_api.models.internallayer.common
 {
 	/// <summary>
 	/// Модель для пересылки на bpm для ее обучения работе с новыми структурами данных.

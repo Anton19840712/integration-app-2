@@ -1,7 +1,7 @@
 ﻿using servers_api.models.configurationsettings;
-using servers_api.models.internallayerusage.common;
+using servers_api.models.internallayer.common;
 
-namespace servers_api.models.internallayerusage.instance
+namespace servers_api.models.internallayer.instance
 {
 	/// <summary>
 	/// Модель для клиента

@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using servers_api.factory.abstractions;
-using servers_api.models.internallayerusage.instance;
-using servers_api.models.responce;
+using servers_api.models.internallayer.instance;
+using servers_api.models.responces;
 
 namespace servers_api.factory.tcp.instances
 {

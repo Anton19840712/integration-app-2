@@ -1,4 +1,4 @@
-﻿namespace servers_api.models.responce
+﻿namespace servers_api.models.responces
 {
 	/// <summary>
 	/// Модель ответов с результатами сервисов по настройке динамического шлюза. 

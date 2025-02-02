@@ -1,4 +1,4 @@
-﻿namespace servers_api.models.responce
+﻿namespace servers_api.models.responces
 {
 	/// <summary>
 	/// Частная модель для работы с возвратом информации из сервиса по созданию очередей.

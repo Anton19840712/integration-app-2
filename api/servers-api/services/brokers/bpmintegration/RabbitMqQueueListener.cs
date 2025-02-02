@@ -2,10 +2,10 @@
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client;
 using servers_api.models.queues;
-using servers_api.models.responce;
 using servers_api.services.brokers.bpmintegration;
 using System.Text;
 using System.Threading.Channels;
+using servers_api.models.responces;
 
 public class RabbitMqQueueListener : IRabbitMqQueueListener
 {
