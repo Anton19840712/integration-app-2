@@ -11,8 +11,8 @@ public class MappingProfile : Profile
 			.ForMember(dest => dest.DataFormat, opt => opt.MapFrom(src => src.DataFormat))
 			.ForMember(dest => dest.InQueueName, opt => opt.MapFrom(src => src.InQueueName))
 			.ForMember(dest => dest.OutQueueName, opt => opt.MapFrom(src => src.OutQueueName))
-			.ForMember(dest => dest.Host, opt => opt.MapFrom(src => src.DataOptions.ClientDetails.Host))
-			.ForMember(dest => dest.Port, opt => opt.MapFrom(src => src.DataOptions.ClientDetails.Port.GetValueOrDefault()))
+			.ForMember(dest => dest.ClientHost, opt => opt.MapFrom(src => src.DataOptions.ClientDetails.Host))
+			.ForMember(dest => dest.ClientPort, opt => opt.MapFrom(src => src.DataOptions.ClientDetails.Port.GetValueOrDefault()))
 			.ForMember(dest => dest.ClientConnectionSettings, opt => opt.MapFrom(src => src.ConnectionSettings.ClientConnectionSettings))
 			.ForMember(dest => dest.ServerHostPort, opt => opt.MapFrom(src => src.DataOptions.ServerDetails)// server нужен, чтобы клиент знал, по какому адресу подключаться
 			);

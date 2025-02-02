@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Options;
 using Serilog;
 using servers_api.middleware;
-using servers_api.models.configurationsettings;
 using servers_api.rest.minimalapi;
 
 Console.Title = "integration api";
