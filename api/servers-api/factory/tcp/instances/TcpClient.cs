@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Sockets;
+using System.Text;
 using servers_api.factory.abstractions;
 using servers_api.models.internallayer.instance;
 using servers_api.models.responces;
@@ -24,45 +25,75 @@ namespace servers_api.factory.tcp.instances
 			int serverPort,
 			CancellationToken token)
 		{
-			var attempt = 0;
+			int maxAttempts = instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer;
+			int timeout = instanceModel.ClientConnectionSettings.ConnectionTimeoutMs;
 
-			while (attempt < instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer)
+			for (int attempt = 1; attempt <= maxAttempts; attempt++)
 			{
-				attempt++;
+				_logger.LogInformation($"Начинается попытка {attempt} из {maxAttempts} подключения к {serverHost}:{serverPort}...");
 
-				try
+				using var client = new System.Net.Sockets.TcpClient();
+
+				// Привязка клиента к локальному адресу и порту
+				if (!string.IsNullOrEmpty(instanceModel.ClientHost) && instanceModel.ClientPort > 0)
 				{
-					_logger.LogInformation($"Попытка подключения к серверу " +
-						$"{serverHost}:{serverPort}, попытка {attempt} из {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer}...");
+					var localEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(instanceModel.ClientHost), instanceModel.ClientPort);
 
-					var client = new System.Net.Sockets.TcpClient();
-					await client.ConnectAsync(serverHost, serverPort);
+					_logger.LogInformation($"Привязываем клиента к локальному адресу {instanceModel.ClientHost}:{instanceModel.ClientPort}");
+					client.Client.Bind(localEndPoint);
+					var actualEndPoint = (System.Net.IPEndPoint)client.Client.LocalEndPoint;
+					_logger.LogInformation($"Клиент привязан к локальному адресу {actualEndPoint.Address}:{actualEndPoint.Port}");
+				}
 
-					if (client.Connected)
+				var connectTask = client.ConnectAsync(serverHost, serverPort);
+				var delayTask = Task.Delay(timeout);
+
+				var completedTask = await Task.WhenAny(connectTask, delayTask);
+
+				if (completedTask == connectTask && client.Connected)
+				{
+					_logger.LogInformation($"Успешно подключено к {serverHost}:{serverPort} на попытке {attempt}.");
+
+					// Отправляем приветственное сообщение серверу
+					await SendWelcomeMessageAsync(client);
+
+					// Запускаем получение сообщений в фоновом потоке
+					_ = Task.Run(() => ReceiveMessagesAsync(client, token), token);
+
+					return new ResponceIntegration { Message = "Успешное подключение", Result = true };
+				}
+
+				_logger.LogWarning($"Попытка {attempt} из {maxAttempts} не завершена в срок (тайм-аут). Продолжаем попытки...");
+
+				if (attempt < maxAttempts)
+				{
+					_logger.LogWarning($"Ожидание {timeout} мс перед следующей попыткой {attempt + 1}...");
+					try
 					{
-						_logger.LogInformation($"Успешно подключено к серверу {serverHost}:{serverPort}");
-						_ = Task.Run(() => ReceiveMessagesAsync(client, token), token);
-						return new ResponceIntegration { Message = "Успешное подключение", Result = true };
+						await Task.Delay(timeout, CancellationToken.None); // Принудительное ожидание без отмены
 					}
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError($"Ошибка при подключении: {ex.Message}");
-				}
-
-				if (attempt < instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer)
-				{
-					_logger.LogWarning($"Ожидание перед следующей попыткой...");
-					await Task.Delay(instanceModel.ClientConnectionSettings.ConnectionTimeoutMs, token);
+					catch (TaskCanceledException) { }
 				}
 			}
 
-			_logger.LogInformation($"Не удалось подключиться к серверу {serverHost}:{serverPort} за {instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer} попыток.");
-			return new ResponceIntegration
+			_logger.LogInformation($"Не удалось подключиться к {serverHost}:{serverPort} за {maxAttempts} попыток.");
+			return new ResponceIntegration { Message = $"Не удалось подключиться после {maxAttempts} попыток", Result = false };
+		}
+
+		private async Task SendWelcomeMessageAsync(System.Net.Sockets.TcpClient client)
+		{
+			try
 			{
-				Message = $"Не удалось подключиться после {attempt} попыток",
-				Result = false
-			};
+				var stream = client.GetStream();
+				string welcomeMessage = "привет от tcp клиента безопасного города";
+				byte[] data = Encoding.UTF8.GetBytes(welcomeMessage);
+				await stream.WriteAsync(data, 0, data.Length);
+				_logger.LogInformation("Отправлено приветственное сообщение серверу.");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError($"Ошибка при отправке приветственного сообщения: {ex.Message}");
+			}
 		}
 
 		private async Task ReceiveMessagesAsync(System.Net.Sockets.TcpClient client, CancellationToken token)
@@ -95,6 +126,3 @@ namespace servers_api.factory.tcp.instances
 		}
 	}
 }
-
-
-
