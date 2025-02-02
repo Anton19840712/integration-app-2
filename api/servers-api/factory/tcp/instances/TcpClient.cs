@@ -6,18 +6,18 @@ using servers_api.models.responces;
 
 namespace servers_api.factory.tcp.instances
 {
-	/// <summary>
-	/// Класс, отвечающий за создание tcp client instance.
-	/// </summary>
-	public class TcpClient : IUpClient
-	{
-		private readonly ILogger<TcpClient> _logger;
+    /// <summary>
+    /// Класс, отвечающий за создание tcp client instance.
+    /// </summary>
+    public class TcpClient : IUpClient
+    {
+        private readonly ILogger<TcpClient> _logger;
 
-		public TcpClient(ILogger<TcpClient> logger)
-		{
-			_logger = logger;
-			_logger.LogInformation("TcpClient instance created.");
-		}
+        public TcpClient(ILogger<TcpClient> logger)
+        {
+            _logger = logger;
+            _logger.LogInformation("TcpClient instance created.");
+        }
 
 		public async Task<ResponceIntegration> ConnectToServerAsync(
 			ClientInstanceModel instanceModel,
@@ -38,7 +38,6 @@ namespace servers_api.factory.tcp.instances
 				if (!string.IsNullOrEmpty(instanceModel.ClientHost) && instanceModel.ClientPort > 0)
 				{
 					var localEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(instanceModel.ClientHost), instanceModel.ClientPort);
-
 					_logger.LogInformation($"Привязываем клиента к локальному адресу {instanceModel.ClientHost}:{instanceModel.ClientPort}");
 					client.Client.Bind(localEndPoint);
 					var actualEndPoint = (System.Net.IPEndPoint)client.Client.LocalEndPoint;
@@ -59,7 +58,7 @@ namespace servers_api.factory.tcp.instances
 
 					// Начинаем слушать сообщения от сервера
 					_logger.LogInformation("Запуск фонового процесса чтения сообщений...");
-					_ = Task.Run(() => ReceiveMessagesAsync(client, token), token);
+					_ = Task.Run(() => ReceiveMessagesAsync(client, token), token); // Это не блокирует выполнение
 
 					return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 				}
@@ -82,20 +81,20 @@ namespace servers_api.factory.tcp.instances
 		}
 
 		private async Task SendWelcomeMessageAsync(System.Net.Sockets.TcpClient client)
-		{
-			try
-			{
-				var stream = client.GetStream();
-				string welcomeMessage = "привет от tcp клиента безопасного города";
-				byte[] data = Encoding.UTF8.GetBytes(welcomeMessage);
-				await stream.WriteAsync(data, 0, data.Length);
-				_logger.LogInformation("Отправлено приветственное сообщение серверу.");
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError($"Ошибка при отправке приветственного сообщения: {ex.Message}");
-			}
-		}
+        {
+            try
+            {
+                var stream = client.GetStream();
+                string welcomeMessage = "привет от tcp клиента безопасного города";
+                byte[] data = Encoding.UTF8.GetBytes(welcomeMessage);
+                await stream.WriteAsync(data, 0, data.Length);
+                _logger.LogInformation("Отправлено приветственное сообщение серверу.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Ошибка при отправке приветственного сообщения: {ex.Message}");
+            }
+        }
 
 		private async Task ReceiveMessagesAsync(System.Net.Sockets.TcpClient client, CancellationToken token)
 		{
@@ -124,6 +123,8 @@ namespace servers_api.factory.tcp.instances
 					break;
 				}
 			}
+
+			_logger.LogInformation("Завершение получения сообщений от сервера.");
 		}
 	}
 }
