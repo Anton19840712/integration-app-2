@@ -79,5 +79,10 @@ namespace servers_api.factory.tcp.instancehandlers
 				_logger.LogInformation("Connection with client {Client} closed.", client.Client.RemoteEndPoint);
 			}
 		}
+
+		public Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }
