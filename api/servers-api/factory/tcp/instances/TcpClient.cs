@@ -32,8 +32,6 @@ public class TcpClient : IUpClient
 		int maxAttempts = instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer;
 		int timeout = instanceModel.ClientConnectionSettings.ConnectionTimeoutMs;
 
-		
-
 		for (int attempt = 1; attempt <= maxAttempts; attempt++)
 		{
 			_logger.LogInformation($"Попытка {attempt} из {maxAttempts} подключения к {serverHost}:{serverPort}...");
@@ -41,7 +39,7 @@ public class TcpClient : IUpClient
 			if (await TryConnectAsync(instanceModel))
 			{
 				_logger.LogInformation($"Подключение к {serverHost}:{serverPort} установлено на попытке {attempt}.");
-				_ = Task.Run(() => MonitorConnectionAsync(), _cts.Token);
+				_ = Task.Run(MonitorConnectionAsync, _cts.Token);
 				return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 			}
 
@@ -50,7 +48,7 @@ public class TcpClient : IUpClient
 		}
 
 		_logger.LogError($"Не удалось подключиться к {serverHost}:{serverPort} за {maxAttempts} попыток.");
-		return new ResponceIntegration { Message = $"Не удалось подключиться", Result = false };
+		return new ResponceIntegration { Message = "Не удалось подключиться", Result = false };
 	}
 
 	private async Task<bool> TryConnectAsync(ClientInstanceModel instanceModel = null)
@@ -60,24 +58,7 @@ public class TcpClient : IUpClient
 			_client?.Close();
 			_client = new System.Net.Sockets.TcpClient();
 
-
-			//Привязка клиента к локальному адресу и порту
-			if (!string.IsNullOrEmpty(instanceModel.ClientHost) && instanceModel.ClientPort > 0)
-			{
-				var localEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(instanceModel.ClientHost), instanceModel.ClientPort);
-
-				// Логируем локальный адрес и порт перед привязкой
-				_logger.LogInformation($"Привязываем клиента к локальному адресу {instanceModel.ClientHost}:{instanceModel.ClientPort}");
-
-				_client.Client.Bind(localEndPoint);
-
-				// Логируем фактический локальный адрес и порт после привязки для проверки, туда ли мы прявязались.
-				var actualEndPoint = (System.Net.IPEndPoint)_client.Client.LocalEndPoint;
-				_logger.LogInformation($"Клиент привязан к локальному адресу {actualEndPoint.Address}:{actualEndPoint.Port}");
-			}
-
-
-
+			BindLocalEndpoint(instanceModel);
 			await _client.ConnectAsync(_serverHost, _serverPort);
 
 			if (_client.Connected)
@@ -90,9 +71,23 @@ public class TcpClient : IUpClient
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError($"Ошибка подключения: {ex.Message}");
+			_logger.LogError(ex, "Ошибка подключения к серверу.");
 		}
 		return false;
+	}
+
+	private void BindLocalEndpoint(ClientInstanceModel instanceModel)
+	{
+		if (!string.IsNullOrEmpty(instanceModel?.ClientHost) && instanceModel.ClientPort > 0)
+		{
+			var localEndPoint = new System.Net.IPEndPoint(
+				System.Net.IPAddress.Parse(instanceModel.ClientHost),
+				instanceModel.ClientPort);
+
+			_logger.LogInformation($"Привязываем клиента к локальному адресу {localEndPoint}");
+			_client.Client.Bind(localEndPoint);
+			_logger.LogInformation($"Фактический локальный адрес: {_client.Client.LocalEndPoint}");
+		}
 	}
 
 	private async Task SendWelcomeMessageAsync()
@@ -108,14 +103,13 @@ public class TcpClient : IUpClient
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError($"Ошибка при отправке приветственного сообщения: {ex.Message}");
+			_logger.LogError(ex, "Ошибка при отправке приветственного сообщения.");
 		}
 	}
 
 	private async Task ReceiveMessagesAsync(CancellationToken token)
 	{
 		var buffer = new byte[1024];
-
 		_logger.LogInformation("Ожидание сообщений от сервера...");
 
 		while (!token.IsCancellationRequested && _client.Connected)
@@ -134,7 +128,7 @@ public class TcpClient : IUpClient
 			}
 			catch (Exception ex)
 			{
-				_logger.LogError($"Ошибка при чтении данных: {ex.Message}");
+				_logger.LogError(ex, "Ошибка при чтении данных.");
 				break;
 			}
 		}
