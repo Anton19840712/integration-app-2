@@ -1,29 +1,36 @@
-﻿using servers_api.factory.abstractions;
+﻿using System.Net.Sockets;
+using System.Text;
+using MongoDB.Driver;
+using servers_api.events;
+using servers_api.factory.abstractions;
 using servers_api.models.internallayer.instance;
 using servers_api.models.responces;
-using System.Net.Sockets;
-using System.Text;
 
 public class TcpClientInstance : IUpClient
 {
 	private readonly ILogger<TcpClientInstance> _logger;
-	private System.Net.Sockets.TcpClient _client;
+	private TcpClient _client;
 	private NetworkStream _stream;
 	private string _serverHost;
 	private int _serverPort;
 	private CancellationTokenSource _cts;
+	private readonly IMongoCollection<EventMessage> _eventsCollection;
 
-	public TcpClientInstance(ILogger<TcpClientInstance> logger)
+	public TcpClientInstance(ILogger<TcpClientInstance> logger, IMongoDatabase database, IConfiguration configuration)
 	{
 		_logger = logger;
-		_logger.LogInformation("TcpClient instance created.");
+
+		string collectionName = configuration.GetValue<string>("MongoDbSettings:Collections:EventCollection") ?? "IntegrationEvents";
+		_eventsCollection = database.GetCollection<EventMessage>(collectionName);
+
+		_logger.LogInformation($"TcpClient instance created. Using MongoDB Collection: {collectionName}");
 	}
 
 	public async Task<ResponceIntegration> ConnectToServerAsync(
-		ClientInstanceModel instanceModel,
-		string serverHost,
-		int serverPort,
-		CancellationToken token)
+	ClientInstanceModel instanceModel,
+	string serverHost,
+	int serverPort,
+	CancellationToken token)
 	{
 		_serverHost = serverHost;
 		_serverPort = serverPort;
@@ -31,32 +38,69 @@ public class TcpClientInstance : IUpClient
 
 		int maxAttempts = instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer;
 		int timeout = instanceModel.ClientConnectionSettings.ConnectionTimeoutMs;
+		int retryDelay = instanceModel.ClientConnectionSettings.RetryDelayMs; // Задержка между повторными попытками
 
-		for (int attempt = 1; attempt <= maxAttempts; attempt++)
+		int attemptsLeft = maxAttempts;
+		while (attemptsLeft > 0)
 		{
-			_logger.LogInformation($"Попытка {attempt} из {maxAttempts} подключения к {serverHost}:{serverPort}...");
+			// Логируем номер оставшихся попыток
+			_logger.LogInformation($"Попытка подключения к {serverHost}:{serverPort} ({attemptsLeft} из {maxAttempts})...");
 
 			if (await TryConnectAsync(instanceModel))
 			{
-				_logger.LogInformation($"Подключение к {serverHost}:{serverPort} установлено на попытке {attempt}.");
+				// Успешное подключение
+				_logger.LogInformation($"Подключение к {serverHost}:{serverPort} установлено.");
 				_ = Task.Run(MonitorConnectionAsync, _cts.Token);
 				return new ResponceIntegration { Message = "Успешное подключение", Result = true };
 			}
 
-			_logger.LogWarning($"Ожидание {timeout} мс перед следующей попыткой...");
-			await Task.Delay(timeout, token);
+			// Лаконичное сообщение при неудаче
+			_logger.LogWarning($"Ошибка подключения. Ожидайте {timeout} мс перед следующей попыткой...");
+			try
+			{
+				// Задержка перед следующей попыткой
+				await Task.Delay(timeout, token);
+			}
+			catch (TaskCanceledException)
+			{
+				// Обработка отмены операции (если задача отменена извне)
+				_logger.LogInformation("Попытка подключения была отменена.");
+				return new ResponceIntegration { Message = "Попытка подключения была отменена", Result = false };
+			}
+
+			attemptsLeft--;
+
+			// Если попытки закончились, подождать retryDelay и начать заново
+			if (attemptsLeft == 0)
+			{
+				_logger.LogInformation($"Не удалось подключиться после {maxAttempts} попыток. Повтор через {retryDelay} мс.");
+				try
+				{
+					// Задержка перед повтором всех попыток
+					await Task.Delay(retryDelay, token); // Задержка перед повтором всех попыток
+				}
+				catch (TaskCanceledException)
+				{
+					_logger.LogInformation("Перезагрузка попыток подключения была отменена.");
+					return new ResponceIntegration { Message = "Перезагрузка попыток подключения была отменена", Result = false };
+				}
+				attemptsLeft = maxAttempts; // Сбросить счетчик попыток
+			}
 		}
 
-		_logger.LogError($"Не удалось подключиться к {serverHost}:{serverPort} за {maxAttempts} попыток.");
+		// Лаконичное сообщение после всех неудачных попыток
+		_logger.LogError($"Не удалось подключиться к {serverHost}:{serverPort} после {maxAttempts} попыток.");
 		return new ResponceIntegration { Message = "Не удалось подключиться", Result = false };
 	}
+
+
 
 	private async Task<bool> TryConnectAsync(ClientInstanceModel instanceModel = null)
 	{
 		try
 		{
 			_client?.Close();
-			_client = new System.Net.Sockets.TcpClient();
+			_client = new TcpClient();
 
 			BindLocalEndpoint(instanceModel);
 			await _client.ConnectAsync(_serverHost, _serverPort);
@@ -69,12 +113,18 @@ public class TcpClientInstance : IUpClient
 				return true;
 			}
 		}
+		catch (SocketException ex)
+		{
+			// Лаконичное логирование ошибки подключения
+			_logger.LogError(ex, $"Ошибка подключения к {_serverHost}:{_serverPort}. Повторная попытка...");
+		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Ошибка подключения к серверу.");
+			_logger.LogError(ex, "Неизвестная ошибка при подключении.");
 		}
 		return false;
 	}
+
 
 	private void BindLocalEndpoint(ClientInstanceModel instanceModel)
 	{
@@ -125,6 +175,15 @@ public class TcpClientInstance : IUpClient
 
 				string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 				_logger.LogInformation($"Получено сообщение от сервера: {message}");
+
+				// ✅ Сохраняем в MongoDB
+				var eventMessage = new EventMessage
+				{
+					Message = message,
+					Source = _serverHost
+				};
+				await _eventsCollection.InsertOneAsync(eventMessage);
+				_logger.LogInformation("Сообщение сохранено в MongoDB.");
 			}
 			catch (Exception ex)
 			{
