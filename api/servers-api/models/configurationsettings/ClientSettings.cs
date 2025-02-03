@@ -9,5 +9,8 @@ namespace servers_api.models.configurationsettings
 
 		[JsonPropertyName("connectionTimeoutMs")]
 		public int ConnectionTimeoutMs { get; set; }
+
+		[JsonPropertyName("retryDelayMs")]
+		public int RetryDelayMs { get; set; }
 	}
 }
