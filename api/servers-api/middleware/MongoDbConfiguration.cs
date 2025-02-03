@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using Serilog;
+using servers_api.repositories;
 using System.Security.Authentication;
 
 namespace servers_api.middleware
@@ -37,6 +38,8 @@ namespace servers_api.middleware
 			});
 
 			Log.Information("MongoDB зарегистрирован.");
+
+			services.AddSingleton<IEventMessageRepository, EventMessageRepository>();
 
 			return services;
 		}

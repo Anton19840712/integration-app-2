@@ -5,6 +5,7 @@ using servers_api.events;
 using servers_api.factory.abstractions;
 using servers_api.models.internallayer.instance;
 using servers_api.models.responces;
+using servers_api.repositories;
 
 public class TcpClientInstance : IUpClient
 {
@@ -14,23 +15,19 @@ public class TcpClientInstance : IUpClient
 	private string _serverHost;
 	private int _serverPort;
 	private CancellationTokenSource _cts;
-	private readonly IMongoCollection<EventMessage> _eventsCollection;
+	private readonly IEventMessageRepository _eventMessageRepository;
 
-	public TcpClientInstance(ILogger<TcpClientInstance> logger, IMongoDatabase database, IConfiguration configuration)
+	public TcpClientInstance(ILogger<TcpClientInstance> logger, IEventMessageRepository eventMessageRepository)
 	{
-		_logger = logger;
-
-		string collectionName = configuration.GetValue<string>("MongoDbSettings:Collections:EventCollection") ?? "IntegrationEvents";
-		_eventsCollection = database.GetCollection<EventMessage>(collectionName);
-
-		_logger.LogInformation($"TcpClient instance created. Using MongoDB Collection: {collectionName}");
+		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+		_eventMessageRepository = eventMessageRepository ?? throw new ArgumentNullException(nameof(eventMessageRepository));
 	}
 
 	public async Task<ResponceIntegration> ConnectToServerAsync(
-	ClientInstanceModel instanceModel,
-	string serverHost,
-	int serverPort,
-	CancellationToken token)
+		ClientInstanceModel instanceModel,
+		string serverHost,
+		int serverPort,
+		CancellationToken token)
 	{
 		_serverHost = serverHost;
 		_serverPort = serverPort;
@@ -120,7 +117,7 @@ public class TcpClientInstance : IUpClient
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Неизвестная ошибка при подключении.");
+			_logger.LogError(ex, "Ошибка подключения.");
 		}
 		return false;
 	}
@@ -176,13 +173,15 @@ public class TcpClientInstance : IUpClient
 				string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 				_logger.LogInformation($"Получено сообщение от сервера: {message}");
 
-				// ✅ Сохраняем в MongoDB
+				// Создаем объект для сохранения
 				var eventMessage = new EventMessage
 				{
 					Message = message,
-					Source = _serverHost
+					Source = _serverHost + " " + _serverPort,
 				};
-				await _eventsCollection.InsertOneAsync(eventMessage);
+
+				// Сохраняем сообщение в MongoDB через репозиторий
+				await _eventMessageRepository.SaveEventMessageAsync(eventMessage);
 				_logger.LogInformation("Сообщение сохранено в MongoDB.");
 			}
 			catch (Exception ex)
@@ -205,7 +204,7 @@ public class TcpClientInstance : IUpClient
 			{
 				_logger.LogWarning("Соединение потеряно. Попытка переподключения...");
 				await ReconnectAsync();
-			}
+	}
 		}
 	}
 
