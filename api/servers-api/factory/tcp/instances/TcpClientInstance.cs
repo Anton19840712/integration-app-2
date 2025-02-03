@@ -4,16 +4,16 @@ using servers_api.models.responces;
 using System.Net.Sockets;
 using System.Text;
 
-public class TcpClient : IUpClient
+public class TcpClientInstance : IUpClient
 {
-	private readonly ILogger<TcpClient> _logger;
+	private readonly ILogger<TcpClientInstance> _logger;
 	private System.Net.Sockets.TcpClient _client;
 	private NetworkStream _stream;
 	private string _serverHost;
 	private int _serverPort;
 	private CancellationTokenSource _cts;
 
-	public TcpClient(ILogger<TcpClient> logger)
+	public TcpClientInstance(ILogger<TcpClientInstance> logger)
 	{
 		_logger = logger;
 		_logger.LogInformation("TcpClient instance created.");

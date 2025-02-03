@@ -5,12 +5,12 @@ public class TcpFactory : UpInstanceByProtocolFactory
 {
 	private readonly ILogger<TcpFactory> _logger;
 	private readonly TcpServer _tcpServer;
-	private readonly TcpClient _tcpClient;
+	private readonly TcpClientInstance _tcpClient;
 
 	public TcpFactory(
 		ILogger<TcpFactory> logger,
 		TcpServer tcpServer,
-		TcpClient tcpClient
+		TcpClientInstance tcpClient
 	)
 	{
 		_logger = logger;
