@@ -46,7 +46,7 @@ namespace servers_api.factory.tcp.instancehandlers
 			}
 		}
 
-		public async Task HandleClientAsync(System.Net.Sockets.TcpClient client, CancellationToken cancellationToken)
+		public async Task HandleClientAsync(TcpClient client, CancellationToken cancellationToken)
 		{
 			try
 			{
