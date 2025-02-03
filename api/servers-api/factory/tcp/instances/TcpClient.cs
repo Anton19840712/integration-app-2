@@ -32,11 +32,13 @@ public class TcpClient : IUpClient
 		int maxAttempts = instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer;
 		int timeout = instanceModel.ClientConnectionSettings.ConnectionTimeoutMs;
 
+		
+
 		for (int attempt = 1; attempt <= maxAttempts; attempt++)
 		{
 			_logger.LogInformation($"Попытка {attempt} из {maxAttempts} подключения к {serverHost}:{serverPort}...");
 
-			if (await TryConnectAsync())
+			if (await TryConnectAsync(instanceModel))
 			{
 				_logger.LogInformation($"Подключение к {serverHost}:{serverPort} установлено на попытке {attempt}.");
 				_ = Task.Run(() => MonitorConnectionAsync(), _cts.Token);
@@ -51,12 +53,31 @@ public class TcpClient : IUpClient
 		return new ResponceIntegration { Message = $"Не удалось подключиться", Result = false };
 	}
 
-	private async Task<bool> TryConnectAsync()
+	private async Task<bool> TryConnectAsync(ClientInstanceModel instanceModel = null)
 	{
 		try
 		{
 			_client?.Close();
 			_client = new System.Net.Sockets.TcpClient();
+
+
+			//Привязка клиента к локальному адресу и порту
+			if (!string.IsNullOrEmpty(instanceModel.ClientHost) && instanceModel.ClientPort > 0)
+			{
+				var localEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(instanceModel.ClientHost), instanceModel.ClientPort);
+
+				// Логируем локальный адрес и порт перед привязкой
+				_logger.LogInformation($"Привязываем клиента к локальному адресу {instanceModel.ClientHost}:{instanceModel.ClientPort}");
+
+				_client.Client.Bind(localEndPoint);
+
+				// Логируем фактический локальный адрес и порт после привязки для проверки, туда ли мы прявязались.
+				var actualEndPoint = (System.Net.IPEndPoint)_client.Client.LocalEndPoint;
+				_logger.LogInformation($"Клиент привязан к локальному адресу {actualEndPoint.Address}:{actualEndPoint.Port}");
+			}
+
+
+
 			await _client.ConnectAsync(_serverHost, _serverPort);
 
 			if (_client.Connected)
