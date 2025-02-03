@@ -26,11 +26,12 @@ try
 	services.AddHttoServices();
 	services.AddFactoryServices();
 	services.AddApiServices();
+
 	services.AddRabbitMqServices(configuration);
 
-	services.AddAutoMapper(typeof(MappingProfile));
+	services.AddMongoDbServices(configuration);
 
-	Log.Information("¬се сервисы успешно зарегистрированы.");
+	services.AddAutoMapper(typeof(MappingProfile));
 
 	var app = builder.Build();
 
