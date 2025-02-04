@@ -4,7 +4,7 @@ namespace servers_api.middleware
 {
 	static class HttpConfiguration
 	{
-		public static IServiceCollection AddHttoServices(this IServiceCollection services)
+		public static IServiceCollection AddHttpServices(this IServiceCollection services)
 		{
 			Log.Information("Регистрация http сервисов...");
 
