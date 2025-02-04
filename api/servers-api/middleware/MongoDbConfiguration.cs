@@ -39,7 +39,7 @@ namespace servers_api.middleware
 
 			Log.Information("MongoDB зарегистрирован.");
 
-			services.AddSingleton<IEventMessageRepository, EventMessageRepository>();
+			services.AddSingleton<IOutboxRepository, MongoOutboxRepository>();
 
 			return services;
 		}
