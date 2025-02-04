@@ -1,9 +1,8 @@
 ﻿using System.Net.Sockets;
 using System.Text;
-using MongoDB.Driver;
-using servers_api.events;
 using servers_api.factory.abstractions;
 using servers_api.models.internallayer.instance;
+using servers_api.models.outbox;
 using servers_api.models.responces;
 using servers_api.repositories;
 
@@ -15,12 +14,11 @@ public class TcpClientInstance : IUpClient
 	private string _serverHost;
 	private int _serverPort;
 	private CancellationTokenSource _cts;
-	private readonly IEventMessageRepository _eventMessageRepository;
-
-	public TcpClientInstance(ILogger<TcpClientInstance> logger, IEventMessageRepository eventMessageRepository)
+	private IOutboxRepository _outboxRepository;
+	public TcpClientInstance(ILogger<TcpClientInstance> logger, IOutboxRepository outboxRepository)
 	{
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
-		_eventMessageRepository = eventMessageRepository ?? throw new ArgumentNullException(nameof(eventMessageRepository));
+		_outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
 	}
 
 	public async Task<ResponceIntegration> ConnectToServerAsync(
@@ -89,7 +87,6 @@ public class TcpClientInstance : IUpClient
 		_logger.LogError($"Не удалось подключиться к {serverHost}:{serverPort} после {maxAttempts} попыток.");
 		return new ResponceIntegration { Message = "Не удалось подключиться", Result = false };
 	}
-
 
 
 	private async Task<bool> TryConnectAsync(ClientInstanceModel instanceModel = null)
@@ -173,16 +170,15 @@ public class TcpClientInstance : IUpClient
 				string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 				_logger.LogInformation($"Получено сообщение от сервера: {message}");
 
-				// Создаем объект для сохранения
-				var eventMessage = new IncidentCreated
+				var outboxMessage = new OutboxMessage
 				{
 					Message = message,
-					Source = _serverHost + " " + _serverPort,
+					Source = $"{_serverHost}:{_serverPort}",
 				};
 
-				// Сохраняем сообщение в MongoDB через репозиторий
-				await _eventMessageRepository.SaveEventMessageAsync(eventMessage);
-				_logger.LogInformation("Сообщение сохранено в MongoDB.");
+				// Сохраняем в Outbox
+				await _outboxRepository.SaveMessageAsync(outboxMessage);
+				_logger.LogInformation("Сообщение сохранено в Outbox.");
 			}
 			catch (Exception ex)
 			{
@@ -194,6 +190,7 @@ public class TcpClientInstance : IUpClient
 		_logger.LogWarning("Клиентское соединение закрыто.");
 		await ReconnectAsync();
 	}
+
 
 	private async Task MonitorConnectionAsync()
 	{
