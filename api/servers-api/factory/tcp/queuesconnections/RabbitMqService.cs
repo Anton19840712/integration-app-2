@@ -58,12 +58,15 @@ namespace servers_api.factory.tcp.queuesconnections
 		}
 
 		// Метод для публикации сообщений
-		public void PublishMessage(string queueName, string message)
+		public async Task PublishMessageAsync(string queueName, string routingKey, string message)
 		{
-			using var channel = PersistentConnection.CreateModel();
-			channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
-			var body = Encoding.UTF8.GetBytes(message);
-			channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
+			await Task.Run(() =>
+			{
+				using var channel = PersistentConnection.CreateModel();
+				channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+				var body = Encoding.UTF8.GetBytes(message);
+				channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
+			});
 		}
 
 		// Метод для возврата существующего соединения
@@ -73,7 +76,7 @@ namespace servers_api.factory.tcp.queuesconnections
 		}
 
 		// Ожидание ответа с таймаутом, если ответ не получен, соединение прекращается
-		public async Task<string> WaitForResponse(string queueName, int timeoutMilliseconds = 15000)
+		public async Task<string> WaitForResponseAsync(string queueName, int timeoutMilliseconds = 15000)
 		{
 			using var channel = PersistentConnection.CreateModel();
 			channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
