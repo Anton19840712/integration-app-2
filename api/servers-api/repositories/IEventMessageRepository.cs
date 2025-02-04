@@ -4,6 +4,6 @@ namespace servers_api.repositories
 {
 	public interface IEventMessageRepository
 	{
-		Task SaveEventMessageAsync(EventMessage eventMessage);
+		Task SaveEventMessageAsync(IncidentCreated eventMessage);
 	}
 }

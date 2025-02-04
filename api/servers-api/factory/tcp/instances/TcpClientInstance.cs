@@ -174,7 +174,7 @@ public class TcpClientInstance : IUpClient
 				_logger.LogInformation($"Получено сообщение от сервера: {message}");
 
 				// Создаем объект для сохранения
-				var eventMessage = new EventMessage
+				var eventMessage = new IncidentCreated
 				{
 					Message = message,
 					Source = _serverHost + " " + _serverPort,

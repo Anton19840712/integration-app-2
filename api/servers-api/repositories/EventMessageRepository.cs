@@ -4,16 +4,16 @@ using servers_api.events;
 namespace servers_api.repositories;
 public class EventMessageRepository : IEventMessageRepository
 {
-	private readonly IMongoCollection<EventMessage> _eventsCollection;
+	private readonly IMongoCollection<IncidentCreated> _eventsCollection;
 
 	public EventMessageRepository(IMongoDatabase database, IConfiguration configuration)
 	{
 
 		string collectionName = configuration.GetValue<string>("MongoDbSettings:Collections:EventCollection") ?? "IntegrationEvents";
-		_eventsCollection = database.GetCollection<EventMessage>(collectionName);
+		_eventsCollection = database.GetCollection<IncidentCreated>(collectionName);
 	}
 
-	public async Task SaveEventMessageAsync(EventMessage eventMessage)
+	public async Task SaveEventMessageAsync(IncidentCreated eventMessage)
 	{
 		try
 		{

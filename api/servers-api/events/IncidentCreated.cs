@@ -3,8 +3,11 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace servers_api.events
 {
-	public class EventMessage
+	public class IncidentCreated
 	{
+		/// <summary>
+		/// Это наш внутренний Id события, присваивается автоматически на уровне базы.
+		/// </summary>
 		[BsonId]
 		public ObjectId Id { get; set; }
 
