@@ -4,11 +4,12 @@ using servers_api.factory.abstractions;
 using servers_api.factory.tcp.instancehandlers;
 using servers_api.models.responces;
 using servers_api.models.internallayer.instance;
+using System.Text;
 
 namespace servers_api.factory.tcp.instances
 {
 	/// <summary>
-	/// Tcp server, отвечает за создание instance of tcp server.
+	/// Tcp сервер, который продолжает отправлять сообщения после возврата ResponceIntegration.
 	/// </summary>
 	public class TcpServerInstance : IUpServer
 	{
@@ -22,8 +23,8 @@ namespace servers_api.factory.tcp.instances
 		}
 
 		public async Task<ResponceIntegration> UpServerAsync(
-		ServerInstanceModel instanceModel,
-		CancellationToken cancellationToken = default)
+			ServerInstanceModel instanceModel,
+			CancellationToken cancellationToken = default)
 		{
 			if (string.IsNullOrWhiteSpace(instanceModel.Host))
 				return new ResponceIntegration { Message = "Host cannot be null or empty.", Result = false };
@@ -44,57 +45,61 @@ namespace servers_api.factory.tcp.instances
 			try
 			{
 				listener.Start();
-				_logger.LogInformation("TCP server started on {Host}:{Port}", instanceModel.Host, instanceModel.Port);
+				_logger.LogInformation("TCP сервер запущен на {Host}:{Port}", instanceModel.Host, instanceModel.Port);
 
-				// Используем настройки из instanceModel.ServerConnectionSettings
 				var serverSettings = instanceModel.ServerConnectionSettings;
 
-				// Пробуем несколько раз подключиться
 				for (int attempt = 1; attempt <= serverSettings.AttemptsToFindBus; attempt++)
 				{
 					try
 					{
-						var serverStartedTask = Task.Run(async () =>
-						{
-							await _tcpServerHandler.WaitForClientAsync(listener, serverSettings.BusResponseWaitTimeMs, cancellationToken);
-						});
+						var client = await listener.AcceptTcpClientAsync(cancellationToken);
+						_logger.LogInformation("Клиент подключился.");
 
-						// Устанавливаем таймаут для ожидания клиента
-						var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(serverSettings.BusIdleTimeoutMs), cancellationToken);
+						// Запускаем фоновую отправку SSE сообщений
+						_ = Task.Run(() => SendSseMessagesAsync(client, cancellationToken), cancellationToken);
 
-						// Ожидаем либо подключения, либо таймаута
-						var completedTask = await Task.WhenAny(serverStartedTask, timeoutTask);
-
-						if (completedTask == timeoutTask)
-						{
-							_logger.LogInformation("No client connected within the timeout period.");
-							return new ResponceIntegration
-							{
-								Message = "Server started, but no client connected within the timeout period.",
-								Result = true
-							};
-						}
-
-						// Если клиент подключился
 						return new ResponceIntegration
 						{
-							Message = "Server started and waiting for client connections.",
+							Message = "Сервер запущен и клиент подключен.",
 							Result = true
 						};
 					}
 					catch (Exception ex)
 					{
-						_logger.LogError(ex, "Error during connection attempt {Attempt}", attempt);
-						await Task.Delay(serverSettings.BusReconnectDelayMs); // Задержка перед следующей попыткой
+						_logger.LogError(ex, "Ошибка во время подключения {Attempt}", attempt);
+						await Task.Delay(serverSettings.BusReconnectDelayMs);
 					}
 				}
 
-				return new ResponceIntegration { Message = "Failed to connect after multiple attempts.", Result = false };
+				return new ResponceIntegration { Message = "Не удалось подключиться после нескольких попыток.", Result = false };
 			}
 			catch (Exception ex)
 			{
-				_logger.LogError(ex, "Critical error occurred while running the server.");
-				return new ResponceIntegration { Message = "Critical server error.", Result = false };
+				_logger.LogError(ex, "Критическая ошибка при запуске сервера.");
+				return new ResponceIntegration { Message = "Критическая ошибка сервера.", Result = false };
+			}
+		}
+
+		private async Task SendSseMessagesAsync(TcpClient client, CancellationToken cancellationToken)
+		{
+			try
+			{
+				using var stream = client.GetStream();
+				var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+
+				int counter = 0;
+				while (!cancellationToken.IsCancellationRequested && client.Connected)
+				{
+					string message = $"SSE event {counter++}: {DateTime.Now:HH:mm:ss}";
+					await writer.WriteLineAsync(message);
+					_logger.LogInformation($"Отправлено клиенту: {message}");
+					await Task.Delay(2000, cancellationToken); // Отправка каждые 2 секунды
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogWarning("Ошибка при отправке SSE сообщений: {Message}", ex.Message);
 			}
 		}
 	}
