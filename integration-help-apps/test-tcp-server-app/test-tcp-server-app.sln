@@ -1,9 +1,8 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35521.163 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test-server-app", "test-server-app\test-server-app.csproj", "{587C8486-EEA3-47BB-9B14-AAFCABBA435B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test-tcp-server-app", "test-tcp-server-app\test-tcp-server-app.csproj", {587C8486-EEA3-47BB-9B14-AAFCABBA435B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

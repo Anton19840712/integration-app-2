@@ -17,7 +17,7 @@ namespace servers_api.middleware
 			services.AddTransient<UpInstanceByProtocolFactory, TcpFactory>();
 			services.AddTransient<IProtocolManager, ProtocolManager>();
 
-			services.AddTransient<TcpServer>();
+			services.AddTransient<TcpServerInstance>();
 			services.AddTransient<TcpClientInstance>();
 
 			services.AddTransient<ITcpServerHandler, TcpServerHandler>();

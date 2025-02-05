@@ -31,9 +31,11 @@ namespace servers_api.background
 						_logger.LogInformation($"Публикация сообщения в RabbitMQ: {message.Message}");
 
 						// Отправляем в RabbitMQ
+						
 						await _rabbitMqService.PublishMessageAsync("exchange_name_tcp", "routing_key_tcp", message.Message);
 
 						// Помечаем сообщение обработанным
+						// TODO проанализируй, если сообщений накопиться очень много, что будет.
 						await _outboxRepository.MarkMessageAsProcessedAsync(message.Id);
 						_logger.LogInformation("Сообщение обработано и помечено в Outbox.");
 					}

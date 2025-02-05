@@ -4,12 +4,12 @@ using servers_api.factory.tcp.instances;
 public class TcpFactory : UpInstanceByProtocolFactory
 {
 	private readonly ILogger<TcpFactory> _logger;
-	private readonly TcpServer _tcpServer;
+	private readonly TcpServerInstance _tcpServer;
 	private readonly TcpClientInstance _tcpClient;
 
 	public TcpFactory(
 		ILogger<TcpFactory> logger,
-		TcpServer tcpServer,
+		TcpServerInstance tcpServer,
 		TcpClientInstance tcpClient
 	)
 	{
