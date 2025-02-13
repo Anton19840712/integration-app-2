@@ -1,13 +1,13 @@
-﻿using servers_api.models.responces;
+﻿using servers_api.models.response;
 
-namespace servers_api.Handlers
+namespace servers_api.handlers
 {
 	public interface IUploadHandler
 	{
-		public List<ResponceIntegration> GenerateResultMessage(
-				ResponceIntegration queueCreationTask = null,
-				ResponceIntegration senderConnectionTask = null,
-				ResponceIntegration pushTask = null,
-				ResponceIntegration receiveTask = null);
+		public List<ResponseIntegration> GenerateResultMessage(
+				ResponseIntegration queueCreationTask = null,
+				ResponseIntegration senderConnectionTask = null,
+				ResponseIntegration pushTask = null,
+				ResponseIntegration receiveTask = null);
 	}
 }

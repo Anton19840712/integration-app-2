@@ -2,7 +2,7 @@
 using servers_api.factory.abstractions;
 using servers_api.models.internallayer.common;
 using servers_api.models.internallayer.instance;
-using servers_api.models.responces;
+using servers_api.models.response;
 using servers_api.Services.Connectors;
 
 public class SenderService : ISenderService
@@ -21,7 +21,7 @@ public class SenderService : ISenderService
 		_mapper = mapper;
 	}
 
-	public async Task<ResponceIntegration> UpAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
+	public async Task<ResponseIntegration> UpAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
 	{
 		_logger.LogInformation(
 			"Запуск UpAsync метода с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
@@ -37,23 +37,23 @@ public class SenderService : ISenderService
 			_logger.LogInformation("Настройка клиента с хостом {Host} и портом {Port}", clientModel.ClientHost, clientModel.ClientPort);
 
 			// Передаем всю модель в метод ConfigureAsync
-			var responceIntegration = await _protocolManager.ConfigureAsync(
+			var responseIntegration = await _protocolManager.ConfigureAsync(
 				clientModel);
 
-			return responceIntegration;
+			return responseIntegration;
 		}
 		else if (instanceModel is ServerInstanceModel serverModel)
 		{
 			_logger.LogInformation("Настройка сервера с хостом {Host} и портом {Port}", serverModel.Host, serverModel.Port);
 
 			// Передаем всю модель в метод ConfigureAsync
-			var responceIntegration = await _protocolManager.ConfigureAsync(
+			var responseIntegration = await _protocolManager.ConfigureAsync(
 				serverModel);
 
-			return responceIntegration;
+			return responseIntegration;
 		}
 
-		return new ResponceIntegration
+		return new ResponseIntegration
 		{
 			Message = "Настройка протокола не была завершена успешно",
 			Result = false

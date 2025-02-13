@@ -4,7 +4,7 @@ using System.Text;
 
 class Program
 {
-	const int Port = 5018;
+	const int Port = 6254;
 	static async Task Main()
 	{
 		var listener = new TcpListener(IPAddress.Any, Port);
@@ -21,13 +21,14 @@ class Program
 
 	static async Task HandleClientAsync(TcpClient client)
 	{
+		Console.Title = "outside server";
 		using (client)
 		using (var stream = client.GetStream())
 		{
 			int messageCount = 1; // Счётчик сообщений
 			while (true)
 			{
-				string message = $"Привет от сервера! Сообщение номер {messageCount}";
+				string message = $"Test message {messageCount}";
 				byte[] data = Encoding.UTF8.GetBytes(message);
 				await stream.WriteAsync(data, 0, data.Length);
 				Console.WriteLine($"Отправлено сообщение номер {messageCount}");

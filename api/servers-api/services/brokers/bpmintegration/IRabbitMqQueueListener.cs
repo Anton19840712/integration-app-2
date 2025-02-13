@@ -1,4 +1,4 @@
-﻿using servers_api.models.responces;
+﻿using servers_api.models.response;
 
 namespace servers_api.services.brokers.bpmintegration
 {
@@ -7,7 +7,8 @@ namespace servers_api.services.brokers.bpmintegration
 	/// </summary>
 	public interface IRabbitMqQueueListener
 	{
-		Task<ResponceIntegration> StartListeningAsync(string queueName, CancellationToken stoppingToken);
+		public Task StartListeningAsync(string queueName, CancellationToken stoppingToken);
 		void StopListening();
+		public List<ResponseIntegration> GetCollectedMessages();
 	}
 }

@@ -1,7 +1,7 @@
 ﻿using System.Text;
-using servers_api.models.responces;
+using servers_api.models.response;
 
-namespace servers_api.Handlers
+namespace servers_api.handlers
 {
 	/// <summary>
 	/// Класс занимается валидацией результатов каждого из процессов настройки интеграции.
@@ -16,14 +16,14 @@ namespace servers_api.Handlers
 		/// <param name="senderConnectionTask">Результат задачи соединения согласно выбранного протокола</param>
 		/// <param name="pushTask">Результат задачи обучения BPM</param>
 		/// <param name="receiveTask">Результат задачи получения данных из BPM</param>
-		/// <returns>Список объектов ResponceIntegration с результатами каждого процесса</returns>
-		public List<ResponceIntegration> GenerateResultMessage(
-					ResponceIntegration queueCreationTask = null,
-					ResponceIntegration senderConnectionTask = null,
-					ResponceIntegration pushTask = null,
-					ResponceIntegration receiveTask = null)
+		/// <returns>Список объектов ResponseIntegration с результатами каждого процесса</returns>
+		public List<ResponseIntegration> GenerateResultMessage(
+					ResponseIntegration queueCreationTask = null,
+					ResponseIntegration senderConnectionTask = null,
+					ResponseIntegration pushTask = null,
+					ResponseIntegration receiveTask = null)
 		{
-			var results = new List<(string ProcessName, ResponceIntegration Response)>
+			var results = new List<(string ProcessName, ResponseIntegration Response)>
 			{
 				("Сервис создания очередей брокера", queueCreationTask),
 				("Сервис запуска соединения согласно выбранного протокола", senderConnectionTask),
@@ -32,11 +32,11 @@ namespace servers_api.Handlers
 			};
 
 			// Создаем список для хранения результатов каждого процесса
-			var responseList = new List<ResponceIntegration>();
+			var responseList = new List<ResponseIntegration>();
 
 			foreach (var (processName, response) in results)
 			{
-				// Генерируем объект ResponceIntegration для каждого процесса
+				// Генерируем объект ResponseIntegration для каждого процесса
 				var resultMessage = new StringBuilder();
 				if (response == null)
 				{
@@ -54,14 +54,14 @@ namespace servers_api.Handlers
 				}
 
 				// Добавляем результат в список
-				responseList.Add(new ResponceIntegration
+				responseList.Add(new ResponseIntegration
 				{
 					Result = response?.Result ?? false, // Успех процесса
 					Message = resultMessage.ToString()   // Сообщение о результате процесса
 				});
 			}
 
-			// Возвращаем список объектов ResponceIntegration с результатами каждого процесса
+			// Возвращаем список объектов ResponseIntegration с результатами каждого процесса
 			return responseList;
 		}
 	}

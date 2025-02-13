@@ -9,7 +9,7 @@ using servers_api.services.brokers.tcprest;
 public static class RabbitConfiguration
 {
 	/// <summary>
-	/// Регистрация RabbitMQ сервисов
+	/// Регистрация RabbitMQ сервисов.
 	/// </summary>
 	public static IServiceCollection AddRabbitMqServices(this IServiceCollection services, IConfiguration configuration)
 	{
@@ -52,7 +52,7 @@ public static class RabbitConfiguration
 
 		services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
 		services.AddSingleton<IRabbitMqService, RabbitMqService>();
-		services.AddTransient<IRabbitMqQueueManager, RabbitMqQueueManager>();
+		services.AddTransient<IRabbitQueuesCreator, RabbitQueuesCreator>();
 
 		Log.Information("Сервисы, взаимодействующие с сетевой шиной, зарегистрированы.");
 		return services;
