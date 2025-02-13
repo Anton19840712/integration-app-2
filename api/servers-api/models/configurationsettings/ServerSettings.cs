@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace servers_api.models.configurationsettings
+namespace servers_api.models.configurationsettings;
+
+public class ServerSettings : BaseConnectionSettings
 {
-	public class ServerSettings : BaseConnectionSettings
-	{
-		[JsonPropertyName("clientHoldConnectionMs")]
-		public int ClientHoldConnectionMs { get; set; }
-	}
+	[JsonPropertyName("clientHoldConnectionMs")]
+	public int ClientHoldConnectionMs { get; set; }
 }

@@ -5,27 +5,28 @@ using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
 
-namespace servers_api.middleware
+namespace servers_api.middleware;
+
+static class IntegrationConfiguration
 {
-	static class IntegrationConfiguration
+	/// <summary>
+	/// Регистрация API сервисов, участвующих в процессе интеграции.
+	/// </summary>
+	public static IServiceCollection AddApiServices(this IServiceCollection services)
 	{
-		/// <summary>
-		/// Регистрация API сервисов, участвующих в процессе интеграции.
-		/// </summary>
-		public static IServiceCollection AddApiServices(this IServiceCollection services)
-		{
-			Log.Information("Регистрация API-сервисов...");
+		Log.Information("Регистрация API-сервисов...");
 
-			services.AddTransient<IJsonParsingService, JsonParsingService>();
-			services.AddTransient<ITeachService, TeachService>();
-			services.AddTransient<ISenderService, SenderService>();
-			services.AddTransient<IUploadService, UploadService>();
+		services.AddTransient<IJsonParsingService, JsonParsingService>();
+		services.AddTransient<ISenderService, SenderService>();
 
-			services.AddTransient<IUploadHandler, UploadHandler>();
+		services.AddTransient<ITeachIntegrationService, TeachIntegrationService>();
+		services.AddTransient<ITeachService, TeachService>();
+		services.AddTransient<ITeachHandler, TeachHandler>();
 
-			Log.Information("API-сервисы зарегистрированы.");
+		services.AddTransient<IStartNodeService, StartNodeService>();
 
-			return services;
-		}
+		Log.Information("API-сервисы зарегистрированы.");
+
+		return services;
 	}
 }

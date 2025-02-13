@@ -2,84 +2,83 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace servers_api.messaging.formatting
+namespace servers_api.messaging.formatting;
+
+public class MessageFormatter : IMessageFormatter
 {
-	public class MessageFormatter : IMessageFormatter
+	public string FormatJson(string json)
 	{
-		public string FormatJson(string json)
+		try
 		{
-			try
+			// Десериализуем JSON в объект
+			using var doc = JsonDocument.Parse(json);
+			var options = new JsonSerializerOptions
 			{
-				// Десериализуем JSON в объект
-				using var doc = JsonDocument.Parse(json);
-				var options = new JsonSerializerOptions
-				{
-					WriteIndented = true,
-					Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-				};
+				WriteIndented = true,
+				Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+			};
 
-				// Преобразуем объект в строку с отступами и декодированием unicode
-				using var ms = new MemoryStream();
-				using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
-				{
-					WriteFormattedJson(doc.RootElement, writer);
-				}
-
-				// Преобразуем байты в строку
-				var formattedJson = Encoding.UTF8.GetString(ms.ToArray());
-
-				// Декодируем Unicode-escape в строках
-				return DecodeUnicodeEscape(formattedJson);
-			}
-			catch
+			// Преобразуем объект в строку с отступами и декодированием unicode
+			using var ms = new MemoryStream();
+			using (var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true }))
 			{
-				return json; // Если JSON невалидный, просто вернуть как есть
+				WriteFormattedJson(doc.RootElement, writer);
 			}
+
+			// Преобразуем байты в строку
+			var formattedJson = Encoding.UTF8.GetString(ms.ToArray());
+
+			// Декодируем Unicode-escape в строках
+			return DecodeUnicodeEscape(formattedJson);
 		}
-
-		public string DecodeUnicodeEscape(string input)
+		catch
 		{
-			// Декодируем все Unicode escape символы
-			return Regex.Replace(input, @"\\u([0-9a-fA-F]{4})", match =>
-			{
-				return char.ConvertFromUtf32(int.Parse(match.Groups[1].Value, System.Globalization.NumberStyles.HexNumber));
-			});
+			return json; // Если JSON невалидный, просто вернуть как есть
 		}
+	}
 
-		public void WriteFormattedJson(JsonElement element, Utf8JsonWriter writer)
+	public string DecodeUnicodeEscape(string input)
+	{
+		// Декодируем все Unicode escape символы
+		return Regex.Replace(input, @"\\u([0-9a-fA-F]{4})", match =>
 		{
-			if (element.ValueKind == JsonValueKind.Object)
+			return char.ConvertFromUtf32(int.Parse(match.Groups[1].Value, System.Globalization.NumberStyles.HexNumber));
+		});
+	}
+
+	public void WriteFormattedJson(JsonElement element, Utf8JsonWriter writer)
+	{
+		if (element.ValueKind == JsonValueKind.Object)
+		{
+			writer.WriteStartObject();
+			foreach (var property in element.EnumerateObject())
 			{
-				writer.WriteStartObject();
-				foreach (var property in element.EnumerateObject())
+				writer.WritePropertyName(property.Name);
+				if (property.Name.Equals("Timestamp", StringComparison.OrdinalIgnoreCase) &&
+					property.Value.ValueKind == JsonValueKind.String &&
+					DateTime.TryParse(property.Value.GetString(), out var timestamp))
 				{
-					writer.WritePropertyName(property.Name);
-					if (property.Name.Equals("Timestamp", StringComparison.OrdinalIgnoreCase) &&
-						property.Value.ValueKind == JsonValueKind.String &&
-						DateTime.TryParse(property.Value.GetString(), out var timestamp))
-					{
-						writer.WriteStringValue(timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
-					}
-					else
-					{
-						WriteFormattedJson(property.Value, writer);
-					}
+					writer.WriteStringValue(timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
 				}
-				writer.WriteEndObject();
-			}
-			else if (element.ValueKind == JsonValueKind.Array)
-			{
-				writer.WriteStartArray();
-				foreach (var item in element.EnumerateArray())
+				else
 				{
-					WriteFormattedJson(item, writer);
+					WriteFormattedJson(property.Value, writer);
 				}
-				writer.WriteEndArray();
 			}
-			else
+			writer.WriteEndObject();
+		}
+		else if (element.ValueKind == JsonValueKind.Array)
+		{
+			writer.WriteStartArray();
+			foreach (var item in element.EnumerateArray())
 			{
-				element.WriteTo(writer);
+				WriteFormattedJson(item, writer);
 			}
+			writer.WriteEndArray();
+		}
+		else
+		{
+			element.WriteTo(writer);
 		}
 	}
 }

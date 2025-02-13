@@ -2,23 +2,22 @@
 using servers_api.background;
 using servers_api.repositories;
 
-namespace servers_api.middleware
+namespace servers_api.middleware;
+
+/// <summary>
+/// Класс обслуживает логику паттерна outbox.
+/// </summary>
+public static class OutboxConfiguration
 {
-	/// <summary>
-	/// Класс обслуживает логику паттерна outbox.
-	/// </summary>
-	public static class OutboxConfiguration
+	public static IServiceCollection AddOutboxServices(this IServiceCollection services)
 	{
-		public static IServiceCollection AddOutboxServices(this IServiceCollection services)
-		{
-			Log.Information("Регистрация OutboxProcessor...");
+		Log.Information("Регистрация OutboxProcessor...");
 
-			// Регистрируем как IHostedService для фонового выполнения
-			services.AddHostedService<OutboxBackgroundService>();
-			services.AddSingleton<IOutboxRepository, MongoOutboxRepository>();
+		// Регистрируем как IHostedService для фонового выполнения
+		services.AddHostedService<OutboxBackgroundService>();
+		services.AddSingleton<IOutboxRepository, MongoOutboxRepository>();
 
-			Log.Information("OutboxProcessor зарегистрирован.");
-			return services;
-		}
+		Log.Information("OutboxProcessor зарегистрирован.");
+		return services;
 	}
 }

@@ -1,23 +1,22 @@
 ﻿using Serilog;
 using servers_api.background;
 
-namespace servers_api.middleware
+namespace servers_api.middleware;
+
+static class CommonConfiguration
 {
-	static class CommonConfiguration
+	/// <summary>
+	/// Регистрация сервисов общего назначения.
+	/// </summary>
+	public static IServiceCollection AddCommonServices(this IServiceCollection services)
 	{
-		/// <summary>
-		/// Регистрация сервисов общего назначения.
-		/// </summary>
-		public static IServiceCollection AddCommonServices(this IServiceCollection services)
-		{
-			Log.Information("Регистрация базовых сервисов...");
+		Log.Information("Регистрация базовых сервисов...");
 
-			services.AddCors();
-			services.AddHostedService<ListenerIntegrationBackgroundService>();
+		services.AddCors();
+		services.AddHostedService<ListenerIntegrationBackgroundService>();
 
-			Log.Information("Базовые сервисы зарегистрированы.");
+		Log.Information("Базовые сервисы зарегистрированы.");
 
-			return services;
-		}
+		return services;
 	}
 }

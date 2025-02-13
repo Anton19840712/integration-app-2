@@ -2,33 +2,52 @@
 using Microsoft.AspNetCore.Mvc;
 using servers_api.main;
 
-namespace servers_api.rest.minimalapi
-{
-	public static class ApiEndpoints
-	{
-		public static void MapCommonApiEndpoints(this IEndpointRouteBuilder app, ILoggerFactory loggerFactory)
-		{
-			var logger = loggerFactory.CreateLogger("ApiEndpoints");
+namespace servers_api.rest.minimalapi;
 
-			// POST-запрос для загрузки файла - это главный endpoint
-			app.MapPost("/api/servers/upload", async (
-				[FromBody] JsonElement jsonBody,
-				IUploadService uploadFileService,
-				CancellationToken stoppingToken) =>
+public static class ApiEndpoints
+{
+	public static void MapCommonApiEndpoints(this IEndpointRouteBuilder app, ILoggerFactory loggerFactory)
+	{
+		var logger = loggerFactory.CreateLogger("ApiEndpoints");
+
+		// POST-запрос для конфигурации системы интеграции
+		app.MapPost("/api/servers/upload", async (
+			[FromBody] JsonElement jsonBody,
+			ITeachIntegrationService uploadFileService,
+			CancellationToken stoppingToken) =>
+		{
+			try
 			{
-				try
-				{
-					logger.LogInformation("Upload endpoint called with body: {JsonBody}", jsonBody.ToString());
-					var result = await uploadFileService.ConfigureAsync(jsonBody, stoppingToken);
-					logger.LogInformation("File uploaded successfully");
-					return Results.Ok(result);
-				}
-				catch (Exception ex)
-				{
-					logger.LogError(ex, "Error during file upload");
-					return Results.Problem(ex.Message);
-				}
-			});
-		}
+				logger.LogInformation("Upload endpoint called with body: {JsonBody}", jsonBody.ToString());
+				var result = await uploadFileService.TeachAsync(jsonBody, stoppingToken);
+				logger.LogInformation("File uploaded successfully");
+				return Results.Ok(result);
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Error during file upload");
+				return Results.Problem(ex.Message);
+			}
+		});
+
+		// POST-запрос для старта инстанса нашей системы
+		app.MapPost("/api/servers/run", async (
+			[FromBody] JsonElement jsonBody,
+			IStartNodeService startNodeService,
+			CancellationToken stoppingToken) =>
+		{
+			try
+			{
+				logger.LogInformation("Start server endpoint called with body: {JsonBody}", jsonBody.ToString());
+				var result = await startNodeService.ConfigureNodeAsync(jsonBody, stoppingToken);
+				logger.LogInformation("Node configured successfully");
+				return Results.Ok(result);
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Error during file upload");
+				return Results.Problem(ex.Message);
+			}
+		});
 	}
 }
