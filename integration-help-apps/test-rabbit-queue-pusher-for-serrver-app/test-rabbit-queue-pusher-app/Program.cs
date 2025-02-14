@@ -17,7 +17,7 @@ class Program
 
 		// Создаём очередь, если её нет
 		channel.QueueDeclare(queue: QueueName,
-							 durable: true,
+							 durable: false,
 							 exclusive: false,
 							 autoDelete: false,
 							 arguments: null);

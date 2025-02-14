@@ -5,7 +5,7 @@ namespace servers_api.main.services;
 
 public interface IStartNodeService
 {
-	Task<List<ResponseIntegration>> ConfigureNodeAsync(
+	Task<ResponseIntegration> ConfigureNodeAsync(
 		JsonElement jsonBody,
 		CancellationToken stoppingToke);
 }

@@ -21,16 +21,14 @@ public class StartNodeService : IStartNodeService
 		_logger = logger;
 	}
 
-	public async Task<List<ResponseIntegration>> ConfigureNodeAsync(JsonElement jsonBody, CancellationToken stoppingToken)
+	public async Task<ResponseIntegration> ConfigureNodeAsync(JsonElement jsonBody, CancellationToken stoppingToken)
 	{
 		_logger.LogInformation("Начало обработки ConfigureNodeAsync");
 
-		var parsedModel = await _integrationFacade.ParseJsonAsync(jsonBody, stoppingToken);
+		var parsedModel = await _integrationFacade.ParseJsonAsync(jsonBody, false, stoppingToken);
 		var apiStatus = await _integrationFacade.ConfigureNodeAsync(parsedModel, stoppingToken);
 
-		var result = _uploadHandler.GenerateResultMessage(null, apiStatus, null);
-
 		_logger.LogInformation("Завершение ConfigureNodeAsync");
-		return result;
+		return apiStatus;
 	}
 }

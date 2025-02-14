@@ -17,8 +17,8 @@ namespace servers_api.main.facades
 			_processingFacade = processingFacade;
 		}
 
-		public Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, CancellationToken stoppingToken)
-			=> _processingFacade.ParseJsonAsync(jsonBody, stoppingToken);
+		public Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, bool isIntegration, CancellationToken stoppingToken)
+			=> _processingFacade.ParseJsonAsync(jsonBody, isIntegration, stoppingToken);
 
 		public Task CreateQueuesAsync(string inQueue, string outQueue, CancellationToken stoppingToken)
 			=> _queueFacade.CreateQueuesAsync(inQueue, outQueue, stoppingToken);

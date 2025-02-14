@@ -6,7 +6,7 @@ namespace servers_api.main.facades
 {
 	public interface IProcessingFacade
 	{
-		Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, CancellationToken stoppingToken);
+		Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, bool isIntegration, CancellationToken stoppingToken);
 		Task<ResponseIntegration> ExecuteTeachAsync(CombinedModel model, CancellationToken stoppingToken);
 		Task<ResponseIntegration> ConfigureNodeAsync(CombinedModel model, CancellationToken stoppingToken);
 	}

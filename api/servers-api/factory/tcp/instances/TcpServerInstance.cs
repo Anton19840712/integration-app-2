@@ -40,6 +40,8 @@ public class TcpServerInstance : IUpServer
 
 		try
 		{
+
+			//  к нам будет подключаться client:
 			listener.Start();
 			_logger.LogInformation("TCP сервер запущен на {Host}:{Port}", instanceModel.Host, instanceModel.Port);
 

@@ -29,7 +29,7 @@ public class TeachIntegrationService : ITeachIntegrationService
 	{
 		_logger.LogInformation("Начало обработки TeachAsync");
 
-		var parsedModel = await _integrationFacade.ParseJsonAsync(jsonBody, stoppingToken);
+		var parsedModel = await _integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
 		await _integrationFacade.CreateQueuesAsync(parsedModel.InQueueName, parsedModel.OutQueueName, stoppingToken);
 
 		var apiStatus = await _integrationFacade.ExecuteTeachAsync(parsedModel, stoppingToken);

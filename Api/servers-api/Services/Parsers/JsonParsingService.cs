@@ -2,10 +2,10 @@
 using Newtonsoft.Json;
 using System.Xml;
 using servers_api.Services.Parsers;
-using JsonSerializer = System.Text.Json.JsonSerializer;
-using JsonException = System.Text.Json.JsonException;
 using servers_api.models.configurationsettings;
 using servers_api.models.internallayer.common;
+using JsonSerializer = System.Text.Json.JsonSerializer;
+using JsonException = System.Text.Json.JsonException;
 
 public class JsonParsingService : IJsonParsingService
 {
@@ -15,85 +15,45 @@ public class JsonParsingService : IJsonParsingService
 	{
 		_logger = logger;
 	}
-	/// <summary>
-	/// Реализация парсера входящих моделей.
-	/// Внутренняя модель внутри входящей должна быть передана в teach service, который будет ее отсылать в bpm.
-	/// Сервис работает с json и xml форматами данных.
-	/// </summary>
-	/// <param name="jsonBody"></param>
-	/// <returns></returns>
-	/// <exception cref="ArgumentException"></exception>
-	/// <exception cref="ApplicationException"></exception>
-	public Task<CombinedModel> ParseJsonAsync(
-		JsonElement jsonBody,
-		CancellationToken stoppingToken)
+
+	public Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, bool isIntegration, CancellationToken stoppingToken)
 	{
 		_logger.LogInformation("Начало разбора JSON");
 
 		try
 		{
-			// Проверка наличия всех обязательных полей
-			if (!jsonBody.TryGetProperty("protocol", out var protocolElement) ||
-				!jsonBody.TryGetProperty("dataFormat", out var formatData) ||
-				!jsonBody.TryGetProperty("companyName", out var companyNameElement) ||
-				!jsonBody.TryGetProperty("model", out var modelElement) ||
-				!jsonBody.TryGetProperty("dataOptions", out var dataOptionsElement) ||
-				!jsonBody.TryGetProperty("connectionSettings", out var connectionSettingsElement))
+			if (!AreRequiredFieldsPresent(jsonBody, isIntegration))
 			{
 				_logger.LogWarning("Пропущены обязательные поля JSON");
 				throw new ArgumentException("Пропущены обязательные поля JSON");
 			}
 
-			// Десериализация вложенных объектов в connectionSettings
-			var clientSettings = JsonSerializer.Deserialize<ClientSettings>(connectionSettingsElement.GetProperty("clientSettings").GetRawText());
-			var serverSettings = JsonSerializer.Deserialize<ServerSettings>(connectionSettingsElement.GetProperty("serverSettings").GetRawText());
-
-			var connectionSettings = new ConnectionSettings
-			{
-				ClientConnectionSettings = clientSettings,
-				ServerConnectionSettings = serverSettings
-			};
-
-			// Получение простых значений
-			var protocol = protocolElement.GetString();
-			var dataFormat = formatData.GetString();
-			var companyName = companyNameElement.GetString();
+			var protocol = jsonBody.GetProperty("protocol").GetString();
+			var dataFormat = jsonBody.GetProperty("dataFormat").GetString();
+			var companyName = jsonBody.GetProperty("companyName").GetString();
 			var inQueueName = $"{companyName}_in";
 			var outQueueName = $"{companyName}_out";
 
-			// Десериализация dataOptions
-			var dataOptions = JsonSerializer.Deserialize<DataOptions>(dataOptionsElement.GetRawText());
+			string jsonString = ConvertXmlToJson(jsonBody, dataFormat, isIntegration);
 
-			// Обработка model в зависимости от dataFormat
-			string jsonString = null;
-			if (dataFormat == "xml")
-			{
-				// Парсим XML и конвертируем в JSON
-				var xmlDocument = new XmlDocument();
-				xmlDocument.LoadXml(modelElement.ToString());
-				xmlDocument.RemoveChild(xmlDocument.FirstChild); // Убираем декларацию XML
+			ConnectionSettings connectionSettings = null;
+			DataOptions dataOptions = null;
 
-				// Конвертируем XML в JSON
-				jsonString = JsonConvert.SerializeXmlNode(xmlDocument, Newtonsoft.Json.Formatting.None, true);
-				_logger.LogInformation("XML успешно конвертирован в JSON");
-			}
-			else
+			if (!isIntegration)
 			{
-				// Если dataFormat не XML, считаем, что model уже JSON
-				jsonString = modelElement.ToString();
-				_logger.LogInformation("Модель в JSON формате успешно загружена");
+				dataOptions = Deserialize<DataOptions>(jsonBody.GetProperty("dataOptions").GetRawText());
+				connectionSettings = DeserializeConnectionSettings(jsonBody.GetProperty("connectionSettings"));
 			}
 
-			// Создание комбинированной модели
 			var combinedModel = new CombinedModel
 			{
 				Protocol = protocol,
 				InQueueName = inQueueName,
 				OutQueueName = outQueueName,
 				InternalModel = jsonString,
-				DataOptions = dataOptions,
-				ConnectionSettings = connectionSettings,
 				DataFormat = dataFormat,
+				DataOptions = dataOptions,
+				ConnectionSettings = connectionSettings
 			};
 
 			_logger.LogInformation("JSON успешно разобран и преобразован в CombinedModel");
@@ -109,5 +69,44 @@ public class JsonParsingService : IJsonParsingService
 			_logger.LogError(ex, "Произошла ошибка при разборе JSON");
 			throw new ApplicationException("Произошла ошибка при разборе JSON.", ex);
 		}
+	}
+
+	private static bool AreRequiredFieldsPresent(JsonElement jsonBody, bool isIntegration)
+	{
+		return jsonBody.TryGetProperty("protocol", out _) &&
+			   jsonBody.TryGetProperty("dataFormat", out _) &&
+			   jsonBody.TryGetProperty("companyName", out _) &&
+			   (isIntegration || jsonBody.TryGetProperty("dataOptions", out _) && jsonBody.TryGetProperty("connectionSettings", out _));
+	}
+
+	private static string ConvertXmlToJson(JsonElement jsonBody, string dataFormat, bool isIntegration)
+	{
+		if (dataFormat != "xml" && isIntegration)
+		{
+			return jsonBody.GetProperty("model").ToString();
+		}
+		if (dataFormat == "xml")
+		{
+			var xmlDocument = new XmlDocument();
+			xmlDocument.LoadXml(jsonBody.GetProperty("model").ToString());
+			xmlDocument.RemoveChild(xmlDocument.FirstChild);
+			return JsonConvert.SerializeXmlNode(xmlDocument, Newtonsoft.Json.Formatting.None, true);
+		}
+
+		return string.Empty;
+	}
+
+	private static ConnectionSettings DeserializeConnectionSettings(JsonElement connectionSettingsElement)
+	{
+		return new ConnectionSettings
+		{
+			ClientConnectionSettings = Deserialize<ClientSettings>(connectionSettingsElement.GetProperty("clientSettings").GetRawText()),
+			ServerConnectionSettings = Deserialize<ServerSettings>(connectionSettingsElement.GetProperty("serverSettings").GetRawText())
+		};
+	}
+
+	private static T Deserialize<T>(string json)
+	{
+		return JsonSerializer.Deserialize<T>(json);
 	}
 }

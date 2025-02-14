@@ -4,9 +4,9 @@ using servers_api.models.internallayer.common;
 namespace servers_api.Services.Parsers;
 
 /// <summary>
-/// Парсер входящей информации from upload endpoint.
+/// Парсер входящей информации.
 /// </summary>
 public interface IJsonParsingService
 {
-	Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, CancellationToken stoppingToken);
+	Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, bool isIntegration, CancellationToken stoppingToken);
 }

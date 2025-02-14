@@ -20,8 +20,8 @@ namespace servers_api.main.facades
 			_senderService = senderService;
 		}
 
-		public async Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, CancellationToken stoppingToken)
-			=> await _jsonParsingService.ParseJsonAsync(jsonBody, stoppingToken);
+		public async Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, bool isIntegration, CancellationToken stoppingToken)
+			=> await _jsonParsingService.ParseJsonAsync(jsonBody, isIntegration, stoppingToken);
 
 		public async Task<ResponseIntegration> ExecuteTeachAsync(CombinedModel model, CancellationToken stoppingToken)
 			=> await _teachService.TeachBPMNAsync(model, stoppingToken);
