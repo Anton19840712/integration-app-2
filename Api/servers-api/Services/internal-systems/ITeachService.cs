@@ -5,5 +5,7 @@ namespace servers_api.Services.InternalSystems;
 
 public interface ITeachService
 {
-	Task<ResponseIntegration> TeachBPMNAsync(CombinedModel model, CancellationToken token);
+	Task<ResponseIntegration> TeachBPMNAsync(
+		CombinedModel model,
+		CancellationToken token);
 }

@@ -11,5 +11,5 @@ public interface IRabbitMqQueueListener
 		string queueName,
 		CancellationToken stoppingToken);
 	void StopListening();
-	public List<ResponseIntegration> GetCollectedMessages();
+	public Task<List<ResponseIntegration>> GetCollectedMessagesAsync(CancellationToken stoppingToken);
 }

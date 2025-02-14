@@ -2,6 +2,8 @@
 using servers_api.factory.abstractions;
 using servers_api.factory.tcp.handlers;
 using servers_api.factory.tcp.instances;
+using servers_api.main.facades;
+using servers_api.main.services;
 
 namespace servers_api.middleware;
 
@@ -17,7 +19,17 @@ static class ProtocolProcessingConfiguration
 		services.AddTransient<IProtocolManager, ProtocolManager>();
 		services.AddTransient<UpInstanceByProtocolFactory, TcpFactory>();
 
-		//TCP:
+		// main services:
+		services.AddTransient<IStartNodeService, StartNodeService>();
+		services.AddTransient<ITeachIntegrationService, TeachIntegrationService>();
+
+		// main facades:
+		services.AddTransient<IIntegrationFacade, IntegrationFacade>();
+		services.AddTransient<IMessageFacade, MessageFacade>();
+		services.AddTransient<IQueueFacade, QueueFacade>();
+		services.AddTransient<IProcessingFacade, ProcessingFacade>();
+
+		// tcp:
 		services.AddTransient<TcpServerInstance>();
 		services.AddTransient<TcpClientInstance>();
 		services.AddTransient<ITcpClientHandler, TcpClientHandler>();

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using servers_api.main;
+using servers_api.main.services;
 
 namespace servers_api.rest.minimalapi;
 

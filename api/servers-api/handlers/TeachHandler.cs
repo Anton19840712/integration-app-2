@@ -19,14 +19,12 @@ public class TeachHandler : ITeachHandler
 	/// <returns>Список объектов ResponseIntegration с результатами каждого процесса</returns>
 	public List<ResponseIntegration> GenerateResultMessage(
 				ResponseIntegration queueCreationTask = null,
-				ResponseIntegration senderConnectionTask = null,
 				ResponseIntegration pushTask = null,
 				ResponseIntegration receiveTask = null)
 	{
 		var results = new List<(string ProcessName, ResponseIntegration Response)>
 		{
 			("Сервис создания очередей брокера", queueCreationTask),
-			("Сервис запуска соединения согласно выбранного протокола", senderConnectionTask),
 			("Сервис обучения BPM", pushTask),
 			("Получение данных из BPM", receiveTask)
 		};

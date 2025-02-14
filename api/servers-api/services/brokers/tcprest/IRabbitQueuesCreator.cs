@@ -7,5 +7,8 @@ namespace servers_api.services.brokers.tcprest;
 /// </summary>
 public interface IRabbitQueuesCreator
 {
-	Task<ResponseIntegration> CreateQueuesAsync(string inQueue, string outQueue);
+	Task<ResponseIntegration> CreateQueuesAsync(
+		string inQueue,
+		string outQueue,
+		CancellationToken stoppingToken);
 }

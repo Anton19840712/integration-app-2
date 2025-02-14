@@ -19,7 +19,9 @@ public class RabbitMqQueueListener : IRabbitMqQueueListener
 	private string _queueName;
 	private readonly ConcurrentQueue<ResponseIntegration> _collectedMessages = new();
 
-	public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger<RabbitMqQueueListener> logger)
+	public RabbitMqQueueListener(
+		IConnectionFactory connectionFactory,
+		ILogger<RabbitMqQueueListener> logger)
 	{
 		_connectionFactory = connectionFactory;
 		_logger = logger;
@@ -73,13 +75,14 @@ public class RabbitMqQueueListener : IRabbitMqQueueListener
 		_logger.LogInformation("Слушатель {Queue} остановлен", _queueName);
 	}
 
-	public List<ResponseIntegration> GetCollectedMessages()
+	public Task<List<ResponseIntegration>> GetCollectedMessagesAsync(CancellationToken stoppingToken)
 	{
 		var messagesList = new List<ResponseIntegration>();
+
 		while (_collectedMessages.TryDequeue(out var message))
 		{
 			messagesList.Add(message);
 		}
-		return messagesList;
+		return Task.FromResult(messagesList);
 	}
 }

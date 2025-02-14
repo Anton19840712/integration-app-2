@@ -13,7 +13,10 @@ public class RabbitQueuesCreator : IRabbitQueuesCreator
 		_connectionFactory = connectionFactory;
 	}
 
-	public async Task<ResponseIntegration> CreateQueuesAsync(string queueIn, string queueOut)
+	public async Task<ResponseIntegration> CreateQueuesAsync(
+		string queueIn,
+		string queueOut,
+		CancellationToken stoppingToken)
 	{
 		_logger.LogInformation("Создание очередей {QueueIn} и {QueueOut}", queueIn, queueOut);
 
@@ -41,7 +44,6 @@ public class RabbitQueuesCreator : IRabbitQueuesCreator
 			return new ResponseQueuesIntegration { Message = ex.Message, Result = false };
 		}
 	}
-
 	private void DeclareQueue(IModel channel, string queue)
 	{
 		channel.QueueDeclare(queue: queue, durable: false, exclusive: false, autoDelete: false, arguments: null);

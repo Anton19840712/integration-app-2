@@ -6,6 +6,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using JsonException = System.Text.Json.JsonException;
 using servers_api.models.configurationsettings;
 using servers_api.models.internallayer.common;
+
 public class JsonParsingService : IJsonParsingService
 {
 	private readonly ILogger<JsonParsingService> _logger;
@@ -23,7 +24,9 @@ public class JsonParsingService : IJsonParsingService
 	/// <returns></returns>
 	/// <exception cref="ArgumentException"></exception>
 	/// <exception cref="ApplicationException"></exception>
-	public CombinedModel ParseJson(JsonElement jsonBody)
+	public Task<CombinedModel> ParseJsonAsync(
+		JsonElement jsonBody,
+		CancellationToken stoppingToken)
 	{
 		_logger.LogInformation("Начало разбора JSON");
 
@@ -94,7 +97,7 @@ public class JsonParsingService : IJsonParsingService
 			};
 
 			_logger.LogInformation("JSON успешно разобран и преобразован в CombinedModel");
-			return combinedModel;
+			return Task.FromResult(combinedModel);
 		}
 		catch (JsonException ex)
 		{

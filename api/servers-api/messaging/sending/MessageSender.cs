@@ -35,7 +35,7 @@ public class MessageSender : IMessageSender
 
 			while (!cancellationToken.IsCancellationRequested && client.Connected)
 			{
-				var elements = _rabbitMqQueueListener.GetCollectedMessages();
+				var elements = await _rabbitMqQueueListener.GetCollectedMessagesAsync(cancellationToken);
 
 				if (elements.Count == 0)
 				{

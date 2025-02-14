@@ -8,5 +8,5 @@ namespace servers_api.Services.Parsers;
 /// </summary>
 public interface IJsonParsingService
 {
-	CombinedModel ParseJson(JsonElement jsonBody);
+	Task<CombinedModel> ParseJsonAsync(JsonElement jsonBody, CancellationToken stoppingToken);
 }
