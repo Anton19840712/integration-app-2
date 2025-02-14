@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace servers_api.rest.controllers;
+namespace servers_api.api.controllers;
 
 [Route("/test")]
 public class TestController : ControllerBase

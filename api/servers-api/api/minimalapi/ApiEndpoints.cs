@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using servers_api.main.services;
 
-namespace servers_api.rest.minimalapi;
+namespace servers_api.api.minimalapi;
 
 public static class ApiEndpoints
 {

@@ -1,6 +1,6 @@
 using Serilog;
+using servers_api.api.minimalapi;
 using servers_api.middleware;
-using servers_api.rest.minimalapi;
 
 Console.Title = "integration api";
 

@@ -5,7 +5,7 @@ using System.Xml;
 using Newtonsoft.Json.Linq;
 using RabbitMQ.Client;
 
-namespace servers_api.rest.controllers;
+namespace servers_api.api.controllers;
 
 [Route("/api")]
 public class TcpController : ControllerBase
