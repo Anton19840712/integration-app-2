@@ -22,7 +22,6 @@ namespace BPMIntegration.Services.Save
 			var parsedModel = _jsonParsingService.ParseJson(jsonBody);
 
 			// Создание и сохранение первого объекта
-
 			Task saveParsedModelTask = Task.Run(async () =>
 			{
 				using (var session = _store.LightweightSession())
@@ -31,6 +30,7 @@ namespace BPMIntegration.Services.Save
 					await session.SaveChangesAsync();
 				}
 			});
+
 			//Создание и сохранение второго объекта
 			Task saveOutboxMessageTask = Task.Run(async () =>
 			{

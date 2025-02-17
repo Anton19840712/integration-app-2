@@ -95,6 +95,10 @@ public class TcpClientHandler : ITcpClientHandler
 		}
 	}
 
+	/// <summary>
+	/// Здесь мы получаем сообщения от tcp клиента и приземляем их в базу данных mongo
+	/// </summary>
+	/// <returns></returns>
 	private async Task ReceiveMessagesAsync()
 	{
 		var buffer = new byte[1024];
@@ -113,6 +117,7 @@ public class TcpClientHandler : ITcpClientHandler
 
 				string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
+				//сразу же приземляем полученное сообщение в нашу базу mongo
 				await _outboxRepository.SaveMessageAsync(new OutboxMessage
 				{
 					Message = message,
@@ -132,6 +137,11 @@ public class TcpClientHandler : ITcpClientHandler
 		await ReconnectAsync();
 	}
 
+	/// <summary>
+	/// Каждые 5 секунд мы мониторим наше соединение с клиентом.
+	/// </summary>
+	/// <param name="token"></param>
+	/// <returns></returns>
 	public async Task MonitorConnectionAsync(CancellationToken token)
 	{
 		while (!token.IsCancellationRequested)
@@ -150,7 +160,16 @@ public class TcpClientHandler : ITcpClientHandler
 		_logger.LogInformation("Попытка переподключения...");
 		while (!_token.IsCancellationRequested)
 		{
-			if (await TryConnectAsync(_serverHost, _serverPort, _token, new ClientInstanceModel { ClientHost = _clientHost, ClientPort = _clientPort }))
+			if (await TryConnectAsync(
+				_serverHost,
+				_serverPort,
+				_token, new ClientInstanceModel 
+				{
+					ClientHost = _clientHost,
+					ClientPort = _clientPort 
+				}
+				)
+			)
 			{
 				_logger.LogInformation("Соединение восстановлено.");
 				return;

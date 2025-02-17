@@ -7,12 +7,19 @@ using ILogger = Serilog.ILogger;
 
 namespace BPMIntegration.Services.Background
 {
-	public class OutboxProcessorService : IHostedService
+	/// <summary>
+	/// Данный сервис целенаправленно каждые 5000 мс собирает информацию из outbox table
+	/// После этого публикует сообщение в очередь, которую слушает динамический шлюз
+	/// Что такое-то сообщение было получено и зафиксировано на стороне bpm
+	/// Это сообщение залогируется на стороне интеграционной шины, что будет являться признаком того, что сообщение отрабатывает
+	/// 
+	/// </summary>
+	public class OutboxIntegrationProcessorService : IHostedService
 	{
 		private readonly IServiceScopeFactory _serviceScopeFactory;
 		private readonly ILogger _logger;
 
-		public OutboxProcessorService(
+		public OutboxIntegrationProcessorService(
 			IServiceScopeFactory serviceScopeFactory,
 			ILogger logger)
 		{

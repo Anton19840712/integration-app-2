@@ -13,6 +13,11 @@ public class MongoOutboxRepository : IOutboxRepository
 		_collection = database.GetCollection<OutboxMessage>("outbox_messages");
 	}
 
+	/// <summary>
+	/// Сохраняем полученное сообщение в mongo db:
+	/// </summary>
+	/// <param name="message"></param>
+	/// <returns></returns>
 	public async Task SaveMessageAsync(OutboxMessage message)
 	{
 		await _collection.InsertOneAsync(message);

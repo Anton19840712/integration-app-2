@@ -77,7 +77,7 @@ public class Program
         builder.Services.AddScoped<IMessagePublisher, MessagePublisher>();
         builder.Services.AddScoped<IJsonParsingService, JsonParsingService>();
 
-        builder.Services.AddHostedService<OutboxProcessorService>();
+        builder.Services.AddHostedService<OutboxIntegrationProcessorService>();
         
 
         // Создание приложения
