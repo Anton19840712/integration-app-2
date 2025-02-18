@@ -8,16 +8,20 @@ namespace servers_api.factory.tcp.handlers;
 
 public class TcpClientHandler : ITcpClientHandler
 {
+	private readonly ILogger<TcpClientHandler> _logger;
+	private readonly IOutboxRepository _outboxRepository;
+
 	private TcpClient _client;
 	private CancellationTokenSource _cts;
 	private NetworkStream _stream;
-	private readonly ILogger<TcpClientHandler> _logger;
-	private readonly IOutboxRepository _outboxRepository;
 	private string _serverHost;
 	private int _serverPort;
 	private CancellationToken _token;
 	private string _clientHost;
 	private int _clientPort;
+	private string _inQueueName;
+	private string _outQueueName;
+	private string _protocolName;
 
 	public TcpClientHandler(ILogger<TcpClientHandler> logger, IOutboxRepository outboxRepository)
 	{
@@ -38,6 +42,9 @@ public class TcpClientHandler : ITcpClientHandler
 		_token = token;
 		_clientHost = instanceModel?.ClientHost;
 		_clientPort = instanceModel?.ClientPort ?? 0;
+		_inQueueName = instanceModel.InQueueName;
+		_outQueueName = instanceModel.OutQueueName;
+		_protocolName = instanceModel.Protocol;
 
 		try
 		{
@@ -117,11 +124,16 @@ public class TcpClientHandler : ITcpClientHandler
 
 				string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
+				//обогащаем его перед этим информацией для дальнейшего использования
 				//сразу же приземляем полученное сообщение в нашу базу mongo
 				await _outboxRepository.SaveMessageAsync(new OutboxMessage
 				{
 					Message = message,
-					Source = $"{_serverHost}:{_serverPort}"
+					Source = $"{_serverHost}:{_serverPort}",
+					InQueueName = _inQueueName,
+					OutQueueName = _outQueueName,
+					RoutingKey = "routing_key_"+_protocolName
+
 				}).ConfigureAwait(false);
 
 				_logger.LogInformation($"Cообщение сохранено: {message}");
