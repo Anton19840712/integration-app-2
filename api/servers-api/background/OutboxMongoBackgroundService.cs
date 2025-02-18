@@ -1,7 +1,5 @@
 ﻿using servers_api.repositories;
 
-namespace servers_api.background;
-
 public class OutboxMongoBackgroundService : BackgroundService
 {
 	private readonly IOutboxRepository _outboxRepository;
@@ -46,17 +44,21 @@ public class OutboxMongoBackgroundService : BackgroundService
 				_logger.LogError(ex, "Ошибка при обработке Outbox.");
 			}
 
+			// Задержка между обработками сообщений, можно изменить на нужное значение
 			await Task.Delay(2000, token);
 		}
 	}
 
 	private async Task CleanupOldMessagesAsync(CancellationToken token)
 	{
+		const int ttlDifference = 10;  // Установите желаемый интервал сущестования объекта в базе данных.
+		const int intervalInSeconds = 10;  // Установите желаемый интервал для повторной проверки сообщений, которые требуется удалить.
+
 		while (!token.IsCancellationRequested)
 		{
 			try
 			{
-				int deletedCount = await _outboxRepository.DeleteOldMessagesAsync(TimeSpan.FromHours(24));
+				int deletedCount = await _outboxRepository.DeleteOldMessagesAsync(TimeSpan.FromSeconds(ttlDifference));
 				_logger.LogInformation($"Удалено {deletedCount} старых сообщений из Outbox.");
 			}
 			catch (Exception ex)
@@ -64,8 +66,8 @@ public class OutboxMongoBackgroundService : BackgroundService
 				_logger.LogError(ex, "Ошибка при очистке старых сообщений Outbox.");
 			}
 
-			// Запуск каждые 10 минут
-			await Task.Delay(TimeSpan.FromMinutes(10), token);
+			// Запуск очистки каждые intervalInSeconds
+			await Task.Delay(TimeSpan.FromSeconds(intervalInSeconds), token);
 		}
 	}
 }

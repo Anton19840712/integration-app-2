@@ -57,6 +57,7 @@ public class TcpClientHandler : ITcpClientHandler
 			if (_client.Connected)
 			{
 				_stream = _client.GetStream();
+				// отправляем приветственное сообщение их серверу:
 				await SendWelcomeMessageAsync().ConfigureAwait(false);
 				_ = Task.Run(() => ReceiveMessagesAsync(), _token);
 				return true;

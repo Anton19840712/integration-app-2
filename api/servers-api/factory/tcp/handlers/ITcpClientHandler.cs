@@ -6,5 +6,9 @@ public interface ITcpClientHandler
 {
 	void Disconnect();
 	Task MonitorConnectionAsync(CancellationToken token);
-	Task<bool> TryConnectAsync(string serverHost, int serverPort, CancellationToken token, ClientInstanceModel instanceModel = null);
+	Task<bool> TryConnectAsync(
+		string serverHost,
+		int serverPort,
+		CancellationToken token,
+		ClientInstanceModel instanceModel = null);
 }

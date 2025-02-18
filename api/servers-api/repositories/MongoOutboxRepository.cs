@@ -41,12 +41,19 @@ public class MongoOutboxRepository : IOutboxRepository
 	}
 
 	/// <summary>
-	/// Удаляет сообщения, которые старше указанного времени
+	/// Удаляет сообщения, которые старше указанного времени, если они были обработаны
 	/// </summary>
 	public async Task<int> DeleteOldMessagesAsync(TimeSpan olderThan)
 	{
-		var filter = Builders<OutboxMessage>.Filter.Lt(m => m.CreatedAt, DateTime.UtcNow - olderThan);
+		// Создаем фильтр, который исключает непроцессированные сообщения
+		var filter = Builders<OutboxMessage>.Filter.And(
+			Builders<OutboxMessage>.Filter.Lt(m => m.CreatedAt, DateTime.UtcNow - olderThan),  // Сообщение старше указанного времени
+			Builders<OutboxMessage>.Filter.Eq(m => m.IsProcessed, true)  // Сообщение должно быть обработано
+		);
+
+		// Выполняем удаление по созданному фильтру
 		var result = await _collection.DeleteManyAsync(filter);
+
 		return (int)result.DeletedCount;
 	}
 }

@@ -3,6 +3,11 @@ using servers_api.factory.tcp.handlers;
 using servers_api.models.internallayer.instance;
 using servers_api.models.response;
 
+
+/// <summary>
+/// Класс занимается подключенем к tcp-серверу внешнего контура.
+/// 
+/// </summary>
 public class TcpClientInstance : IUpClient
 {
 	private readonly ILogger<TcpClientInstance> _logger;
@@ -30,7 +35,11 @@ public class TcpClientInstance : IUpClient
 			{
 				_logger.LogInformation($"[{attempt}/{maxAttempts}] Подключение к {serverHost}:{serverPort}...");
 
-				if (await _helper.TryConnectAsync(serverHost, serverPort, token, instanceModel).ConfigureAwait(false))
+				if (await _helper.TryConnectAsync(
+					serverHost,
+					serverPort,
+					token,
+					instanceModel).ConfigureAwait(false))
 				{
 					_logger.LogInformation($"Подключение к {serverHost}:{serverPort} успешно.");
 					_ = Task.Run(() => _helper.MonitorConnectionAsync(token), token);
