@@ -9,7 +9,7 @@ builder.Services.AddSingleton<IMongoClient, MongoClient>(sp =>
 	var settings = MongoClientSettings.FromConnectionString("mongodb://localhost:27017");
 	return new MongoClient(settings);
 });
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton(sp => // создается ли эта база данных автоматически?
 	sp.GetRequiredService<IMongoClient>().GetDatabase("my_database"));
 
 builder.Services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>

@@ -6,23 +6,23 @@ using RabbitMQ.Client;
 
 namespace BPMIntegration.Publishing
 {
-    public class MessagePublisher : IMessagePublisher
-    {
-        private readonly ILogger<MessagePublisher> _logger;
-        private readonly ConnectionFactory _connectionFactory;
+	public class MessagePublisher : IMessagePublisher
+	{
+		private readonly ILogger<MessagePublisher> _logger;
+		private readonly ConnectionFactory _connectionFactory;
 
-        public MessagePublisher(ILogger<MessagePublisher> logger)
-        {
-            _logger = logger;
+		public MessagePublisher(ILogger<MessagePublisher> logger)
+		{
+			_logger = logger;
 
-            _connectionFactory = new ConnectionFactory
-            {
-                HostName = "localhost",
-                Port = 5672,
-                UserName = "guest",
-                Password = "guest"
-            };
-        }
+			_connectionFactory = new ConnectionFactory
+			{
+				HostName = "localhost",
+				Port = 5672,
+				UserName = "guest",
+				Password = "guest"
+			};
+		}
 
 		public async Task PublishAsync(string queueName, IntegrationEntity payload)
 		{

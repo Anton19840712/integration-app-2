@@ -1,8 +1,8 @@
 ﻿namespace BPMIntegration
 {
-    public enum EventTypes
-    {
-        Created,
-        Processed
-    }
+	public enum EventTypes
+	{
+		Created,
+		Processed
+	}
 }

@@ -1,12 +1,16 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
-namespace BPMIntegration.Models
+public class IntegrationEntity
 {
-    public class IntegrationEntity
-    {
-		public Guid Id { get; set; }
-        public string InQueueName { get; set; }
-        public string OutQueueName { get; set; }
-        public JObject IncomingModel { get; set; }
-    }
+	[BsonId]
+	[BsonRepresentation(BsonType.String)] 
+	public Guid Id { get; set; }
+
+	public string InQueueName { get; set; }
+	public string OutQueueName { get; set; }
+
+	[BsonElement("incomingModel")]
+	[BsonRepresentation(BsonType.String)]
+	public string IncomingModel { get; set; }
 }

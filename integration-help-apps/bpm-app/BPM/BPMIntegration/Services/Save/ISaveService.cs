@@ -5,6 +5,6 @@ namespace BPMIntegration.Services.Save
 {
 	public interface ISaveService
 	{
-		Task<IntegrationEntity> SaveModelAsync(JsonElement model);
+		Task<IntegrationEntity> SaveIntegrationModelAsync(JsonElement model);
 	}
 }
