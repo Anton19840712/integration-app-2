@@ -8,4 +8,5 @@ public interface IOutboxRepository
 	Task SaveMessageAsync(OutboxMessage message);
 	Task<List<OutboxMessage>> GetUnprocessedMessagesAsync();
 	Task MarkMessageAsProcessedAsync(ObjectId messageId);
+	Task<int> DeleteOldMessagesAsync(TimeSpan olderThan);
 }

@@ -14,25 +14,39 @@ public class MongoOutboxRepository : IOutboxRepository
 	}
 
 	/// <summary>
-	/// Сохраняем полученное сообщение в mongo db:
+	/// Сохраняем полученное сообщение в MongoDB
 	/// </summary>
-	/// <param name="message"></param>
-	/// <returns></returns>
 	public async Task SaveMessageAsync(OutboxMessage message)
 	{
 		await _collection.InsertOneAsync(message);
 	}
 
+	/// <summary>
+	/// Получает непросессированные сообщения
+	/// </summary>
 	public async Task<List<OutboxMessage>> GetUnprocessedMessagesAsync()
 	{
 		return await _collection.Find(m => !m.IsProcessed).ToListAsync();
 	}
 
+	/// <summary>
+	/// Помечает сообщение как обработанное
+	/// </summary>
 	public async Task MarkMessageAsProcessedAsync(ObjectId messageId)
 	{
 		var update = Builders<OutboxMessage>.Update
 			.Set(m => m.IsProcessed, true)
 			.Set(m => m.ProcessedAt, DateTime.UtcNow);
 		await _collection.UpdateOneAsync(m => m.Id == messageId, update);
+	}
+
+	/// <summary>
+	/// Удаляет сообщения, которые старше указанного времени
+	/// </summary>
+	public async Task<int> DeleteOldMessagesAsync(TimeSpan olderThan)
+	{
+		var filter = Builders<OutboxMessage>.Filter.Lt(m => m.CreatedAt, DateTime.UtcNow - olderThan);
+		var result = await _collection.DeleteManyAsync(filter);
+		return (int)result.DeletedCount;
 	}
 }
