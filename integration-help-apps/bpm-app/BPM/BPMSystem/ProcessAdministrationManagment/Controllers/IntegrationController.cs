@@ -28,6 +28,13 @@ namespace BPMSystem.ProcessAdministrationManagment.Controllers
             };
         }
 
+        /// <summary>
+        /// Этот метод используется в рамках настройки bpm: 
+        /// создается и сохраняется модель, которая содержит модель, с которой будет нужно работать. 
+        /// Так же название очередей, из которой будут заслушиваться сообщения и в которую будут отправляться сообщения.
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         [HttpPost($"save")]
         public async Task<ActionResult> SaveModelAsync([FromBody] JsonElement model)
         {
