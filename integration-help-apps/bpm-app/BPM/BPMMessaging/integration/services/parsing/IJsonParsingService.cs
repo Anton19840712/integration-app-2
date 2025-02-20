@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
-using BPMIntegration.Models;
 
-namespace BPMIntegration.Services.Parsing
+namespace BPMMessaging.integration.services.parsing
 {
 	public interface IJsonParsingService
 	{

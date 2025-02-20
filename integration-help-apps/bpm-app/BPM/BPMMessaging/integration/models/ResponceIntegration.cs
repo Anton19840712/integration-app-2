@@ -1,4 +1,4 @@
-﻿namespace BPMIntegration.Models
+﻿namespace BPMMessaging.integration.Models
 {
 	public class ResponceIntegration
 	{

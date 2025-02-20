@@ -1,11 +1,9 @@
 using BPMEngine.DB.Consts;
-using BPMIntegration.Models;
-using BPMIntegration.Publishing;
-using BPMIntegration.Services.Background;
-using BPMIntegration.Services.Parsing;
-using BPMIntegration.Services.Save;
+using BPMIntegration.Services.Background.BPMIntegration.Services.Background;
+using BPMMessaging.integration.Publishing;
+using BPMMessaging.integration.services.parsing;
+using BPMMessaging.integration.Services.Save;
 using BPMSystem.DB;
-using Marten;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -52,32 +50,12 @@ public class Program
             }
         });
 
-        // Регистрация Marten
-        builder.Services.AddScoped<IDocumentStore>(provider =>
-        {
-            return DocumentStore.For(options =>
-            {
-                options.Advanced.HiloSequenceDefaults.SequenceName = "Id";
-				// options.DatabaseSchemaName = "public";
-				// MartenSchemaConfiguration.Configure(options);// для разбиения данным по колонкам
-				options.Connection(DBConsts.DBConnections.ConnectionString_BPM!);
-
-                options.Schema.For<IntegrationEntity>()
-                        //.UseIdentityKey()
-                        .DocumentAlias("integration");
-
-				options.Schema.For<OutboxMessage>()
-						//.UseIdentityKey()
-						.DocumentAlias("outbox");
-			});
-        });
-
         // Добавление остальных сервисов
         builder.Services.AddScoped<ISaveService, SaveService>();
         builder.Services.AddScoped<IMessagePublisher, MessagePublisher>();
         builder.Services.AddScoped<IJsonParsingService, JsonParsingService>();
 
-        builder.Services.AddHostedService<OutboxIntegrationProcessorService>();
+        builder.Services.AddHostedService<OutboxIntegrationTrackingService>();
         
 
         // Создание приложения

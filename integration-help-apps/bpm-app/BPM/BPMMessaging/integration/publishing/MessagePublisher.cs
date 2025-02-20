@@ -1,10 +1,8 @@
 ﻿using System.Text;
-using BPMIntegration.Models;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 
-namespace BPMIntegration.Publishing
+namespace BPMMessaging.integration.Publishing
 {
 	public class MessagePublisher : IMessagePublisher
 	{

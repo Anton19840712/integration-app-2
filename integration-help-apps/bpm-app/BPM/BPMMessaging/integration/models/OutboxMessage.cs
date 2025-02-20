@@ -1,7 +1,8 @@
-﻿using MongoDB.Bson;
+﻿using BPMMessaging.integration.Enums;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace BPMIntegration.Models
+namespace BPMMessaging.integration.Models
 {
 	public class OutboxMessage
 	{

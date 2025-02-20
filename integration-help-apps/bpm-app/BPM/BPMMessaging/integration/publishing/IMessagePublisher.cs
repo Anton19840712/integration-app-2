@@ -1,7 +1,4 @@
-﻿
-using BPMIntegration.Models;
-
-namespace BPMIntegration.Publishing
+﻿namespace BPMMessaging.integration.Publishing
 {
 	public interface IMessagePublisher
 	{

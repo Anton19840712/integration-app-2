@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
-using BPMIntegration.Models;
 
-namespace BPMIntegration.Services.Save
+namespace BPMMessaging.integration.Services.Save
 {
 	public interface ISaveService
 	{

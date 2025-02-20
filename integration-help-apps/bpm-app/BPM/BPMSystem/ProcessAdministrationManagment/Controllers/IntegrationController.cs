@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using BPMIntegration.Models;
-using BPMIntegration.Services.Save;
+using BPMMessaging.integration.Models;
+using BPMMessaging.integration.Services.Save;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BPMSystem.ProcessAdministrationManagment.Controllers

@@ -34,7 +34,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BPMEngine\BPMEngine.csproj" />
-    <ProjectReference Include="..\BPMIntegration\BPMIntegration.csproj" />
+    <ProjectReference Include="..\BPMMessaging\BPMMessaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Configurations\" />
   </ItemGroup>
 
 </Project>

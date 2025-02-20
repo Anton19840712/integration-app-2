@@ -1,10 +1,11 @@
 ﻿using System.Text.Json;
-using BPMIntegration.Models;
-using BPMIntegration.Services.Parsing;
+using BPMMessaging.integration.Enums;
+using BPMMessaging.integration.Models;
+using BPMMessaging.integration.services.parsing;
 using MongoDB.Driver;
 
 
-namespace BPMIntegration.Services.Save
+namespace BPMMessaging.integration.Services.Save
 {
 	public class SaveService : ISaveService
 	{

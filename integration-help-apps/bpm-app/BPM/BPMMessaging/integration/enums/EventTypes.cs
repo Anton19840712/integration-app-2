@@ -1,4 +1,4 @@
-﻿namespace BPMIntegration
+﻿namespace BPMMessaging.integration.Enums
 {
 	public enum EventTypes
 	{

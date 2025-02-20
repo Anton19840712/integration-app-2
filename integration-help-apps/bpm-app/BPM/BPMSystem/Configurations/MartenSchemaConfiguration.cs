@@ -1,6 +1,4 @@
 ﻿using BPMEngine.DB.Consts;
-using BPMIntegration.Models;
-using Marten;
 
 public class MartenSchemaConfiguration : MartenRegistry
 {

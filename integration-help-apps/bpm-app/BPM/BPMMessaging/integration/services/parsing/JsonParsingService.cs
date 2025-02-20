@@ -1,7 +1,5 @@
 ﻿using System.Text.Json;
-using BPMIntegration.Models;
-using BPMIntegration.Services.Parsing;
-using Microsoft.Extensions.Logging;
+using BPMMessaging.integration.services.parsing;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -39,7 +37,7 @@ public class JsonParsingService : IJsonParsingService
 			{
 				InQueueName = inQueueName.GetString(),
 				OutQueueName = outQueueName.GetString(),
-				IncomingModel = parsedObjectу // Преобразуем object в JObject
+				IncomingModel = parsedObjectу.ToString() // Преобразуем object в JObject
 			};
 
 			_logger.LogInformation("Парсинг JSON завершен успешно.");

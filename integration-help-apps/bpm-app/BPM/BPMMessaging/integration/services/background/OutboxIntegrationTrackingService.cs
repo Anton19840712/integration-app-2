@@ -1,13 +1,7 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using Serilog;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using BPMIntegration.Models;
-using BPMIntegration.Publishing;
+using BPMMessaging.integration.Models;
+using BPMMessaging.integration.Publishing;
 
 namespace BPMIntegration.Services.Background
 {
@@ -20,12 +14,12 @@ namespace BPMIntegration.Services.Background
 	/// </summary>
 	namespace BPMIntegration.Services.Background
 	{
-		public class OutboxIntegrationProcessorService : IHostedService
+		public class OutboxIntegrationTrackingService : IHostedService
 		{
 			private readonly IServiceScopeFactory _serviceScopeFactory;
-			private readonly ILogger _logger;
+			private readonly ILogger<OutboxIntegrationTrackingService> _logger;
 
-			public OutboxIntegrationProcessorService(IServiceScopeFactory serviceScopeFactory, ILogger logger)
+			public OutboxIntegrationTrackingService(IServiceScopeFactory serviceScopeFactory, ILogger<OutboxIntegrationTrackingService> logger)
 			{
 				_serviceScopeFactory = serviceScopeFactory;
 				_logger = logger;
@@ -33,7 +27,7 @@ namespace BPMIntegration.Services.Background
 
 			public Task StartAsync(CancellationToken cancellationToken)
 			{
-				_logger.Information("OutboxProcessorService запущен.");
+				_logger.LogInformation("OutboxProcessorService запущен.");
 
 				_ = Task.Run(async () =>
 				{
@@ -45,11 +39,11 @@ namespace BPMIntegration.Services.Background
 						}
 						catch (OperationCanceledException)
 						{
-							_logger.Information("Обработка сообщений была отменена.");
+							_logger.LogInformation("Обработка сообщений была отменена.");
 						}
 						catch (Exception ex)
 						{
-							_logger.Error(ex, "Ошибка в процессе обработки сообщений.");
+							_logger.LogError(ex, "Ошибка в процессе обработки сообщений.");
 						}
 
 						await Task.Delay(5000, cancellationToken);
@@ -61,7 +55,7 @@ namespace BPMIntegration.Services.Background
 
 			public Task StopAsync(CancellationToken cancellationToken)
 			{
-				_logger.Information("OutboxProcessorService остановлен.");
+				_logger.LogInformation("OutboxProcessorService остановлен.");
 				return Task.CompletedTask;
 			}
 
@@ -80,7 +74,7 @@ namespace BPMIntegration.Services.Background
 
 					if (outboxMessages.Any())
 					{
-						_logger.Information("Найдено {Count} сообщений для обработки.", outboxMessages.Count);
+						_logger.LogInformation("Найдено {Count} сообщений для обработки.", outboxMessages.Count);
 
 						foreach (var message in outboxMessages)
 						{
@@ -91,27 +85,27 @@ namespace BPMIntegration.Services.Background
 							var update = Builders<OutboxMessage>.Update.Set(m => m.IsProcessed, true);
 							await collection.UpdateOneAsync(Builders<OutboxMessage>.Filter.Eq(m => m.Id, message.Id), update);
 
-							_logger.Information(
+							_logger.LogInformation(
 								"Сообщение outbox {MessageId} c incoming model id {Id} отправлено в очередь {Queue}.",
 								message.Id,
 								message.Payload.Id,
 								message.OutQueue);
 						}
 
-						_logger.Information("Все сообщения успешно обработаны.");
+						_logger.LogInformation("Все сообщения успешно обработаны.");
 					}
 					else
 					{
-						_logger.Debug("Очередь сообщений пуста, обработка пропущена.");
+						_logger.LogInformation("Очередь сообщений пуста, обработка пропущена.");
 					}
 				}
 				catch (OperationCanceledException)
 				{
-					_logger.Information("Обработка сообщений была отменена.");
+					_logger.LogInformation("Обработка сообщений была отменена.");
 				}
 				catch (Exception ex)
 				{
-					_logger.Error(ex, "Ошибка при обработке сообщений в очереди.");
+					_logger.LogError(ex, "Ошибка при обработке сообщений в очереди.");
 				}
 			}
 		}
