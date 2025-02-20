@@ -1,11 +1,14 @@
 using BPMEngine.DB.Consts;
 using BPMIntegration.Services.Background.BPMIntegration.Services.Background;
+using BPMMessaging;
 using BPMMessaging.integration.Publishing;
 using BPMMessaging.integration.services.parsing;
 using BPMMessaging.integration.Services.Save;
 using BPMSystem.DB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MongoDB.Driver;
+using RabbitMQ.Client;
 using Serilog;
 
 namespace BPMSystem;
@@ -56,10 +59,39 @@ public class Program
         builder.Services.AddScoped<IJsonParsingService, JsonParsingService>();
 
         builder.Services.AddHostedService<OutboxIntegrationTrackingService>();
-        
 
-        // Создание приложения
-        var app = builder.Build();
+
+		builder.Services.AddSingleton<IMongoClient, MongoClient>(sp =>
+		{
+			var settings = MongoClientSettings.FromConnectionString(
+				builder.Configuration["MongoDbSettings:ConnectionString"]);
+			return new MongoClient(settings);
+		});
+		builder.Services.AddSingleton(sp =>
+			sp.GetRequiredService<IMongoClient>().GetDatabase(
+				builder.Configuration["MongoDbSettings:DatabaseName"]));
+
+		builder.Services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
+			new ConnectionFactory
+			{
+				HostName = builder.Configuration["RabbitMqSettings:HostName"],
+				Port = int.Parse(builder.Configuration["RabbitMqSettings:Port"] ?? "5672"),
+				UserName = builder.Configuration["RabbitMqSettings:UserName"],
+				Password = builder.Configuration["RabbitMqSettings:Password"]
+			});
+
+		builder.Services.AddSingleton<QueueConfigRepository>();
+		builder.Services.AddSingleton<RabbitMqListenerManager>();
+		builder.Services.AddSingleton<QueueMonitorService>();
+
+		var app = builder.Build();
+
+		// Логируем запуск приложения
+		Log.Information("Приложение запущено");
+
+		app.Services.GetRequiredService<QueueMonitorService>();
+
+
 
         // Настройка middleware для Swagger и других функций
         if (app.Environment.IsDevelopment())
@@ -78,6 +110,13 @@ public class Program
         app.MapControllers(); // Привязка контроллеров
 
         // Запуск приложения
+
+
+
+
+
+
+
         app.Run();
     }
 }
