@@ -49,7 +49,9 @@ public class TeachService : ITeachService
 
 			_logger.LogInformation("Отправка POST-запроса на https://localhost:7054/Integration/save");
 
-			// Отправляем POST-запрос с телом
+			// Отправляем POST-запрос с телом модели для обучения bpm.
+			// Для обучения используется rest
+			// Для обработки интеграций используется сетевая шина
 			// Эти адреса необходимо сделать динамическими
 			var response = await client.PostAsync("https://localhost:7054/Integration/save", jsonContent, token);
 

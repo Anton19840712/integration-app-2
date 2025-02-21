@@ -1,45 +1,42 @@
-﻿using System.Text.Json;
-using BPMMessaging.integration.Models;
-using BPMMessaging.integration.Services.Save;
+﻿using AutoMapper;
+using BPMMessaging.models;
+using BPMMessaging.parsing;
+using BPMMessaging.repository;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
-namespace BPMSystem.ProcessAdministrationManagment.Controllers
+[Route("Integration")]
+[ApiController]
+public class IntegrationController : ControllerBase
 {
-	[Route($"Integration")]
-	[ApiController]
-	public class IntegrationController : ControllerBase
+	private readonly IMongoRepository<TeachingEntity> _teachingRepository;
+	private readonly IJsonParsingService _jsonParsingService;
+
+	public IntegrationController(
+		IMongoRepository<TeachingEntity> teachingRepository,
+		IJsonParsingService jsonParsingService,
+		IMapper mapper)
 	{
-		private readonly ISaveService _integrationService;
+		_teachingRepository = teachingRepository;
+		_jsonParsingService = jsonParsingService;
+	}
 
-		public IntegrationController(ISaveService integrationService)
+	[HttpPost("save")]
+	public async Task<ActionResult> SaveTeachingModelAsync([FromBody] JsonElement model)
+	{
+		try
 		{
-			_integrationService = integrationService;
+			// Парсим JSON в TeachingEntity
+			var parsedModel = _jsonParsingService.ParseJson<TeachingEntity>(model);
+
+			// Сохраняем в MongoDB
+			await _teachingRepository.InsertAsync(parsedModel);
+
+			return Ok(new { Message = "TeachingEntity успешно сохранена" });
 		}
-
-		[HttpGet($"ping")]
-		public async Task<ActionResult<ResponceIntegration>> PingAsync()
+		catch (Exception ex)
 		{
-			await Task.Delay(1000);
-
-			return new ResponceIntegration
-			{
-				Message = "Ping successful",
-				Result = true
-			};
-		}
-
-		/// <summary>
-		/// Этот метод используется в рамках настройки bpm: 
-		/// создается и сохраняется модель, которая содержит модель, с которой будет нужно работать. 
-		/// Так же название очередей, из которой будут заслушиваться сообщения и в которую будут отправляться сообщения.
-		/// </summary>
-		/// <param name="model"></param>
-		/// <returns></returns>
-		[HttpPost($"save")]
-		public async Task<ActionResult> SaveModelAsync([FromBody] JsonElement model)
-		{
-			var integration = await _integrationService.SaveIntegrationModelAsync(model);
-			return Ok(new { message = nameof(model), id = integration.Id, data = integration });
+			return BadRequest(new { Error = "Ошибка при обработке модели", Details = ex.Message });
 		}
 	}
 }

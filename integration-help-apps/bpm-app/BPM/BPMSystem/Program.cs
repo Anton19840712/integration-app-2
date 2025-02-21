@@ -1,11 +1,12 @@
 using BPMEngine.DB.Consts;
-using BPMIntegration.Services.Background.BPMIntegration.Services.Background;
-using BPMMessaging;
-using BPMMessaging.integration.Publishing;
-using BPMMessaging.integration.services.parsing;
-using BPMMessaging.integration.Services.Save;
+using BPMMessaging.mapping;
+using BPMMessaging.models;
+using BPMMessaging.parsing;
+using BPMMessaging.publishing;
+using BPMMessaging.repository;
 using BPMSystem.DB;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using RabbitMQ.Client;
@@ -53,23 +54,21 @@ public class Program
             }
         });
 
-        // Добавление остальных сервисов
-        builder.Services.AddScoped<ISaveService, SaveService>();
-        builder.Services.AddScoped<IMessagePublisher, MessagePublisher>();
+		// Добавление остальных сервисов
+		builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMqSettings"));
+		builder.Services.AddSingleton<IMessagePublisher, MessagePublisher>();
         builder.Services.AddScoped<IJsonParsingService, JsonParsingService>();
 
         builder.Services.AddHostedService<OutboxIntegrationTrackingService>();
-
-
-		builder.Services.AddSingleton<IMongoClient, MongoClient>(sp =>
+		builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
+		builder.Services.AddSingleton<IMongoClient>(sp =>
 		{
-			var settings = MongoClientSettings.FromConnectionString(
-				builder.Configuration["MongoDbSettings:ConnectionString"]);
-			return new MongoClient(settings);
+			var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
+			return new MongoClient(settings.ConnectionString);
 		});
-		builder.Services.AddSingleton(sp =>
-			sp.GetRequiredService<IMongoClient>().GetDatabase(
-				builder.Configuration["MongoDbSettings:DatabaseName"]));
+
+		builder.Services.AddSingleton(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+
 
 		builder.Services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
 			new ConnectionFactory
@@ -79,6 +78,8 @@ public class Program
 				UserName = builder.Configuration["RabbitMqSettings:UserName"],
 				Password = builder.Configuration["RabbitMqSettings:Password"]
 			});
+
+		builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 		builder.Services.AddSingleton<QueueConfigRepository>();
 		builder.Services.AddSingleton<RabbitMqListenerManager>();
@@ -110,11 +111,6 @@ public class Program
         app.MapControllers(); // Привязка контроллеров
 
         // Запуск приложения
-
-
-
-
-
 
 
         app.Run();
