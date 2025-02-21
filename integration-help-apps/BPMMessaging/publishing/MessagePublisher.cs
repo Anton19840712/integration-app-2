@@ -1,5 +1,6 @@
 ﻿using System.Text;
-using BPMMessaging.models;
+using BPMMessaging.models.dtos;
+using BPMMessaging.models.settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -28,7 +29,7 @@ namespace BPMMessaging.publishing
 			};
 		}
 
-		public async Task PublishAsync(string queueName, OutModel payload)
+		public async Task PublishAsync(string queueName, OutboxMessage payload)
 		{
 			try
 			{

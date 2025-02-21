@@ -1,4 +1,4 @@
-﻿namespace BPMMessaging.models
+﻿namespace BPMMessaging.models.settings
 {
 	public class RabbitMqSettings
 	{

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using BPMMessaging.models;
+using BPMMessaging.models.dtos;
+using BPMMessaging.models.entities;
 using BPMMessaging.parsing;
 using BPMMessaging.repository;
 using Microsoft.AspNetCore.Mvc;
@@ -10,14 +11,17 @@ using System.Text.Json;
 public class IntegrationController : ControllerBase
 {
 	private readonly IMongoRepository<TeachingEntity> _teachingRepository;
+	private readonly IMongoRepository<OutboxMessage> _outboxRepository;
 	private readonly IJsonParsingService _jsonParsingService;
 
 	public IntegrationController(
 		IMongoRepository<TeachingEntity> teachingRepository,
+		IMongoRepository<OutboxMessage> outboxRepository,
 		IJsonParsingService jsonParsingService,
 		IMapper mapper)
 	{
 		_teachingRepository = teachingRepository;
+		_outboxRepository = outboxRepository;
 		_jsonParsingService = jsonParsingService;
 	}
 
@@ -26,12 +30,19 @@ public class IntegrationController : ControllerBase
 	{
 		try
 		{
-			// Парсим JSON в TeachingEntity
 			var parsedModel = _jsonParsingService.ParseJson<TeachingEntity>(model);
 
-			// Сохраняем в MongoDB
 			await _teachingRepository.InsertAsync(parsedModel);
 
+			var outboxMessage = new OutboxMessage
+			{
+				OutQueue = parsedModel.OutQueueName,
+				InQueue = parsedModel.InQueueName,
+				Payload = parsedModel.IncomingModel,
+				IsProcessed = false
+			};
+
+			await _outboxRepository.InsertAsync(outboxMessage);
 			return Ok(new { Message = "TeachingEntity успешно сохранена" });
 		}
 		catch (Exception ex)

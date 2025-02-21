@@ -1,4 +1,6 @@
-﻿using BPMMessaging.models;
+﻿using BPMMessaging.models.dtos;
+using BPMMessaging.models.entities;
+using BPMMessaging.models.settings;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using System.Linq.Expressions;

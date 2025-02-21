@@ -11,7 +11,7 @@ public static class ApiEndpoints
 		var logger = loggerFactory.CreateLogger("ApiEndpoints");
 
 		// POST-запрос для конфигурации системы интеграции
-		app.MapPost("/api/servers/upload", async (
+		app.MapPost("/api/servers/teach", async (
 			[FromBody] JsonElement jsonBody,
 			ITeachIntegrationService uploadFileService,
 			CancellationToken stoppingToken) =>

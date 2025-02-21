@@ -1,6 +1,6 @@
-﻿namespace BPMMessaging.models
+﻿namespace BPMMessaging.models.dtos
 {
-	public class OutModel
+	public class ParsedModel
 	{
 		public Guid Id { get; set; }
 		public string InQueueName { get; set; }

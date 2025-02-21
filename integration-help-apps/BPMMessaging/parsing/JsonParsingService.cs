@@ -1,6 +1,7 @@
-﻿using BPMMessaging.models;
+﻿using BPMMessaging.models.entities;
 using BPMMessaging.parsing;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
@@ -38,7 +39,7 @@ public class JsonParsingService : IJsonParsingService
 				{
 					InQueueName = inQueueName.GetString(),
 					OutQueueName = outQueueName.GetString(),
-					IncomingModel = parsedObject.ToString()
+					IncomingModel = BsonDocument.Parse(parsedObject.ToString(Formatting.None))
 				} as T;
 			}
 

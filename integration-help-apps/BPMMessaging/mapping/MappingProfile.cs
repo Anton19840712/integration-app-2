@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using BPMMessaging.models;
+using BPMMessaging.models.dtos;
+using BPMMessaging.models.entities;
 
 namespace BPMMessaging.mapping
 {
