@@ -9,22 +9,13 @@ namespace servers_api.Services.InternalSystems;
 /// <summary>
 /// Сервис, ответственный за обучение bpm работе с новыми структурами сообщений.
 /// </summary>
-public class TeachService : ITeachService
+public class TeachService(
+	IHttpClientFactory httpClientFactory,
+	ILogger<TeachService> logger) : ITeachService
 {
-	private readonly IHttpClientFactory _httpClientFactory;
-	private readonly ILogger<TeachService> _logger;
-
-	public TeachService(
-		IHttpClientFactory httpClientFactory,
-		ILogger<TeachService> logger)
-	{
-		_httpClientFactory = httpClientFactory;
-		_logger = logger;
-	}
-
 	public async Task<ResponseIntegration> TeachBPMNAsync(CombinedModel parsedModel, CancellationToken token)
 	{
-		_logger.LogInformation("Начало обработки TeachBPMNAsync");
+		logger.LogInformation("Начало обработки TeachBPMNAsync");
 
 		var modelForCardSystem = new InMessage
 		{
@@ -36,7 +27,7 @@ public class TeachService : ITeachService
 			}
 		};
 
-		var client = _httpClientFactory.CreateClient();
+		var client = httpClientFactory.CreateClient();
 
 		try
 		{
@@ -47,7 +38,7 @@ public class TeachService : ITeachService
 				"application/json"
 			);
 
-			_logger.LogInformation("Отправка POST-запроса на https://localhost:7054/Integration/save");
+			logger.LogInformation("Отправка POST-запроса на https://localhost:7054/Integration/save");
 
 			// Отправляем POST-запрос с телом модели для обучения bpm.
 			// Для обучения используется rest
@@ -57,7 +48,7 @@ public class TeachService : ITeachService
 
 			if (response.IsSuccessStatusCode)
 			{
-				_logger.LogInformation("Соединение успешно установлено с API, статус-код: {StatusCode}", response.StatusCode);
+				logger.LogInformation("Соединение успешно установлено с API, статус-код: {StatusCode}", response.StatusCode);
 				return new ResponseIntegration
 				{
 					Message = "API доступен, соединение успешно установлено.",
@@ -66,7 +57,7 @@ public class TeachService : ITeachService
 			}
 			else
 			{
-				_logger.LogWarning("API недоступен, статус-код: {StatusCode}", response.StatusCode);
+				logger.LogWarning("API недоступен, статус-код: {StatusCode}", response.StatusCode);
 				return new ResponseIntegration
 				{
 					Message = $"API недоступен. Статус-код: {(int)response.StatusCode}",
@@ -76,7 +67,7 @@ public class TeachService : ITeachService
 		}
 		catch (HttpRequestException ex)
 		{
-			_logger.LogError(ex, "Ошибка при обращении к API");
+			logger.LogError(ex, "Ошибка при обращении к API");
 			return new ResponseIntegration
 			{
 				Message = $"Ошибка при обращении к API: {ex.Message}",
@@ -85,7 +76,7 @@ public class TeachService : ITeachService
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Неожиданная ошибка при проверке статуса API");
+			logger.LogError(ex, "Неожиданная ошибка при проверке статуса API");
 			return new ResponseIntegration
 			{
 				Message = $"Неожиданная ошибка при проверке статуса API: {ex.Message}",

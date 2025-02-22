@@ -8,15 +8,10 @@ using RabbitMQ.Client;
 namespace servers_api.api.controllers;
 
 [Route("/api")]
-public class TcpController : ControllerBase
+public class TcpController(ILogger<TcpController> logger) : ControllerBase
 {
 	private readonly IModel _channel;
-	private readonly ILogger<TcpController> _logger;
-
-	public TcpController(ILogger<TcpController> logger)
-	{
-		_logger = logger;
-	}
+	private static readonly char[] trimChars = ['\uFEFF', '\u200B'];
 
 	[HttpPost]
 	[Route("message")]
@@ -25,11 +20,11 @@ public class TcpController : ControllerBase
 		using var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8);
 		var requestBodyAsString = await reader.ReadToEndAsync();
 
-		_logger.LogInformation("Received SOAP request: {Request}", requestBodyAsString);
+		logger.LogInformation("Received SOAP request: {Request}", requestBodyAsString);
 
 		// Преобразование XML в JSON
 		string json = ConvertXmlToJson(requestBodyAsString);
-		_logger.LogInformation("Converted JSON: {Json}", json);
+		logger.LogInformation("Converted JSON: {Json}", json);
 
 		// Отправка JSON в очередь RabbitMQ
 		PublishMessageToQueue(json);
@@ -45,7 +40,7 @@ public class TcpController : ControllerBase
 						 "</soapenv:Body></soapenv:Envelope>";
 
 		await HttpContext.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(payload));
-		_logger.LogInformation("Sent SOAP response: {Response}", payload);
+		logger.LogInformation("Sent SOAP response: {Response}", payload);
 
 		return new EmptyResult();
 	}
@@ -60,14 +55,14 @@ public class TcpController : ControllerBase
 							 basicProperties: null,
 							 body: body);
 
-		_logger.LogInformation("Message published to RabbitMQ bpmn_queue: {Message}", jsonMessage);
+		logger.LogInformation("Message published to RabbitMQ bpmn_queue: {Message}", jsonMessage);
 	}
 
-	private string ConvertXmlToJson(string xml)
+	private static string ConvertXmlToJson(string xml)
 	{
 		var xmlDoc = new XmlDocument();
-		xml = xml.TrimStart(new char[] { '\uFEFF', '\u200B' });
-		xml = xml.Substring(xml.IndexOf('<'));
+		xml = xml.TrimStart(trimChars);
+		xml = xml[xml.IndexOf('<')..];
 
 		xmlDoc.LoadXml(xml);
 
@@ -85,7 +80,7 @@ public class TcpController : ControllerBase
 
 			var jsonObject = JsonConvert.DeserializeObject<JObject>(jsonText);
 			jsonObject.Descendants().OfType<JProperty>()
-					  .Where(attr => attr.Name.StartsWith("@"))
+					  .Where(attr => attr.Name.StartsWith('@'))
 					  .ToList()
 					  .ForEach(attr => attr.Remove());
 

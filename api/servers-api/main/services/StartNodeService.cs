@@ -1,34 +1,21 @@
 ﻿using System.Text.Json;
-using servers_api.handlers;
 using servers_api.main.facades;
 using servers_api.models.response;
 
 namespace servers_api.main.services;
 
-public class StartNodeService : IStartNodeService
+public class StartNodeService(
+	IIntegrationFacade integrationFacade,
+	ILogger<StartNodeService> logger) : IStartNodeService
 {
-	private readonly IIntegrationFacade _integrationFacade;
-	private readonly ITeachHandler _uploadHandler;
-	private readonly ILogger<StartNodeService> _logger;
-
-	public StartNodeService(
-		IIntegrationFacade integrationFacade,
-		ITeachHandler uploadHandler,
-		ILogger<StartNodeService> logger)
-	{
-		_integrationFacade = integrationFacade;
-		_uploadHandler = uploadHandler;
-		_logger = logger;
-	}
-
 	public async Task<ResponseIntegration> ConfigureNodeAsync(JsonElement jsonBody, CancellationToken stoppingToken)
 	{
-		_logger.LogInformation("Начало обработки ConfigureNodeAsync");
+		logger.LogInformation("Начало обработки ConfigureNodeAsync");
 
-		var parsedModel = await _integrationFacade.ParseJsonAsync(jsonBody, false, stoppingToken);
-		var apiStatus = await _integrationFacade.ConfigureNodeAsync(parsedModel, stoppingToken);
+		var parsedModel = await integrationFacade.ParseJsonAsync(jsonBody, false, stoppingToken);
+		var apiStatus = await integrationFacade.ConfigureNodeAsync(parsedModel, stoppingToken);
 
-		_logger.LogInformation("Завершение ConfigureNodeAsync");
+		logger.LogInformation("Завершение ConfigureNodeAsync");
 		return apiStatus;
 	}
 }

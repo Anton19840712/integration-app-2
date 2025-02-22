@@ -1,52 +1,45 @@
 ﻿using RabbitMQ.Client;
 using servers_api.models.response;
-using servers_api.services.brokers.tcprest;
 
-public class RabbitQueuesCreator : IRabbitQueuesCreator
+namespace servers_api.services.brokers.tcprest
 {
-	private readonly ILogger<RabbitQueuesCreator> _logger;
-	private readonly IConnectionFactory _connectionFactory;
-
-	public RabbitQueuesCreator(ILogger<RabbitQueuesCreator> logger, IConnectionFactory connectionFactory)
+	public class RabbitQueuesCreator(ILogger<RabbitQueuesCreator> logger, IConnectionFactory connectionFactory) : IRabbitQueuesCreator
 	{
-		_logger = logger;
-		_connectionFactory = connectionFactory;
-	}
-
-	public async Task<ResponseIntegration> CreateQueuesAsync(
-		string queueIn,
-		string queueOut,
-		CancellationToken stoppingToken)
-	{
-		_logger.LogInformation("Создание очередей {QueueIn} и {QueueOut}", queueIn, queueOut);
-
-		try
+		public async Task<ResponseIntegration> CreateQueuesAsync(
+			string queueIn,
+			string queueOut,
+			CancellationToken stoppingToken)
 		{
-			return await Task.Run(() =>
+			logger.LogInformation("Создание очередей {QueueIn} и {QueueOut}", queueIn, queueOut);
+
+			try
 			{
-				using var connection = _connectionFactory.CreateConnection();
-				using var channel = connection.CreateModel();
-
-				DeclareQueue(channel, queueIn);
-				DeclareQueue(channel, queueOut);
-
-				return new ResponseQueuesIntegration
+				return await Task.Run(() =>
 				{
-					Message = $"Очереди '{queueIn}' и '{queueOut}' успешно созданы.",
-					Result = true,
-					OutQueue = queueOut
-				};
-			});
+					using var connection = connectionFactory.CreateConnection();
+					using var channel = connection.CreateModel();
+
+					DeclareQueue(channel, queueIn);
+					DeclareQueue(channel, queueOut);
+
+					return new ResponseQueuesIntegration
+					{
+						Message = $"Очереди '{queueIn}' и '{queueOut}' успешно созданы.",
+						Result = true,
+						OutQueue = queueOut
+					};
+				});
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Ошибка при создании очередей {QueueIn} и {QueueOut}", queueIn, queueOut);
+				return new ResponseQueuesIntegration { Message = ex.Message, Result = false };
+			}
 		}
-		catch (Exception ex)
+		private void DeclareQueue(IModel channel, string queue)
 		{
-			_logger.LogError(ex, "Ошибка при создании очередей {QueueIn} и {QueueOut}", queueIn, queueOut);
-			return new ResponseQueuesIntegration { Message = ex.Message, Result = false };
+			channel.QueueDeclare(queue: queue, durable: false, exclusive: false, autoDelete: false, arguments: null);
+			logger.LogInformation("Очередь {Queue} создана.", queue);
 		}
-	}
-	private void DeclareQueue(IModel channel, string queue)
-	{
-		channel.QueueDeclare(queue: queue, durable: false, exclusive: false, autoDelete: false, arguments: null);
-		_logger.LogInformation("Очередь {Queue} создана.", queue);
 	}
 }

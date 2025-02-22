@@ -1,8 +1,10 @@
-﻿namespace servers_api.main.facades
+﻿using servers_api.models.response;
+
+namespace servers_api.main.facades
 {
 	public interface IQueueFacade
 	{
-		Task CreateQueuesAsync(string inQueue, string outQueue, CancellationToken stoppingToken);
+		Task<ResponseIntegration> CreateQueuesAsync(string inQueue, string outQueue, CancellationToken stoppingToken);
 		Task StartListeningAsync(string outQueue, CancellationToken stoppingToken);
 	}
 }

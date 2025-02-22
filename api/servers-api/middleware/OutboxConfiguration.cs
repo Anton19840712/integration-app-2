@@ -1,5 +1,4 @@
 ﻿using Serilog;
-using servers_api.background;
 using servers_api.repositories;
 
 namespace servers_api.middleware;
