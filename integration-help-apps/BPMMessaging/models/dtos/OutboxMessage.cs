@@ -10,6 +10,9 @@ namespace BPMMessaging.models.dtos
 		[BsonRepresentation(BsonType.String)]
 		public Guid Id { get; set; } = Guid.NewGuid();
 
+		[BsonElement("modelType")]
+		public string ModelType { get; set; }
+
 		[BsonElement("eventType")]
 		public EventTypes EventType { get; set; }
 
@@ -30,7 +33,7 @@ namespace BPMMessaging.models.dtos
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 		// Принудительно сохраняем в UTC
-		[BsonElement("createdAtFormatted")]
+		[BsonElement("CreatedAtFormatted")]
 		[BsonIgnoreIfNull]
 		public string CreatedAtFormatted { get; set; }
 

@@ -9,7 +9,6 @@ namespace BPMMessaging.background.queuelistenersinfrastructure
 		private readonly ConcurrentDictionary<string, QueueListener> _listeners = new();
 		private readonly IServiceProvider _serviceProvider;
 		private readonly ILogger<QueueListenerManager> _logger;
-		private readonly TimeSpan _listenerTimeout = TimeSpan.FromMinutes(5); // Например, 5 минут
 
 		public QueueListenerManager(IServiceProvider serviceProvider, ILogger<QueueListenerManager> logger)
 		{

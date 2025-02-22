@@ -30,19 +30,37 @@ public class IntegrationController : ControllerBase
 	{
 		try
 		{
+			// 1. Парсим входящую модель
 			var parsedModel = _jsonParsingService.ParseJson<TeachingEntity>(model);
 
-			await _teachingRepository.InsertAsync(parsedModel);
+			// 2. Проверяем, есть ли уже такая модель в БД
+			var existingModel = (await _teachingRepository.FindAsync(x =>
+				x.InQueueName == parsedModel.InQueueName &&
+				x.OutQueueName == parsedModel.OutQueueName)).FirstOrDefault();
 
+			if (existingModel != null)
+			{
+				// Если модель найдена — обновляем
+				await _teachingRepository.UpdateAsync(existingModel.Id, parsedModel);
+			}
+			else
+			{
+				// Если модели нет — вставляем новую
+				await _teachingRepository.InsertAsync(parsedModel);
+			}
+
+			// 3. Создаем событие для OutboxMessage
 			var outboxMessage = new OutboxMessage
 			{
 				OutQueue = parsedModel.OutQueueName,
+				ModelType = "teaching",
 				InQueue = parsedModel.InQueueName,
 				Payload = parsedModel.IncomingModel,
 				IsProcessed = false
 			};
 
 			await _outboxRepository.InsertAsync(outboxMessage);
+
 			return Ok(new { Message = "TeachingEntity успешно сохранена" });
 		}
 		catch (Exception ex)

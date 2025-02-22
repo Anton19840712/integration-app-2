@@ -24,7 +24,7 @@ namespace BPMMessaging.models.entities
 		public string UserAgent { get; set; }
 		public string CorrelationId { get; set; }
 
-		[BsonElement("createdAtFormatted")]
+		[BsonElement("CreatedAtFormatted")]
 		[BsonIgnoreIfNull]
 		public string CreatedAtFormatted { get; set; }
 
