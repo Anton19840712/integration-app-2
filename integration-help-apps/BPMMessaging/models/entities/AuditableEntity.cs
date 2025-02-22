@@ -23,5 +23,17 @@ namespace BPMMessaging.models.entities
 		public string IpAddress { get; set; }
 		public string UserAgent { get; set; }
 		public string CorrelationId { get; set; }
+
+		[BsonElement("createdAtFormatted")]
+		[BsonIgnoreIfNull]
+		public string CreatedAtFormatted { get; set; }
+
+		[BsonIgnore]
+		public string FormattedDate => CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+		public AuditableEntity()
+		{
+			CreatedAtFormatted = FormattedDate;
+		}
 	}
 }

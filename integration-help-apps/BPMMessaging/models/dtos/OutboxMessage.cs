@@ -1,8 +1,6 @@
 ﻿using BPMMessaging.enums;
-using BPMMessaging.models.entities;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json.Linq;
 
 namespace BPMMessaging.models.dtos
 {
@@ -30,5 +28,18 @@ namespace BPMMessaging.models.dtos
 		[BsonElement("createdAt")]
 		[BsonRepresentation(BsonType.DateTime)]
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+		// Принудительно сохраняем в UTC
+		[BsonElement("createdAtFormatted")]
+		[BsonIgnoreIfNull]
+		public string CreatedAtFormatted { get; set; }
+
+		[BsonIgnore]
+		public string FormattedDate => CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+		public OutboxMessage()
+		{
+			CreatedAtFormatted = FormattedDate; // Заполняем перед сохранением
+		}
 	}
 }
