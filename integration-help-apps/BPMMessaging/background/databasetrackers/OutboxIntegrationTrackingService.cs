@@ -82,7 +82,7 @@ namespace BPMIntegration.Services.Background
 						{
 							cancellationToken.ThrowIfCancellationRequested();
 
-							await messagePublisher.PublishAsync(message.OutQueue, message);
+							await messagePublisher.PublishAsync(message.OutQueue, message, cancellationToken);
 
 							var update = Builders<OutboxMessage>.Update.Set(m => m.IsProcessed, true);
 							await collection.UpdateOneAsync(Builders<OutboxMessage>.Filter.Eq(m => m.Id, message.Id), update);

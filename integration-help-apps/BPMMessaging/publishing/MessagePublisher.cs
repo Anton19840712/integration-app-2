@@ -28,8 +28,23 @@ namespace BPMMessaging.publishing
 				Password = rabbitMqSettings.Password
 			};
 		}
+		private bool QueueExists(IModel channel, string queueName)
+		{
+			try
+			{
+				channel.QueueDeclarePassive(queueName);
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
 
-		public async Task PublishAsync(string queueName, OutboxMessage payload)
+		public async Task PublishAsync(
+			string queueName,
+			OutboxMessage payload,
+			CancellationToken stoppingToken)
 		{
 			try
 			{
@@ -38,13 +53,31 @@ namespace BPMMessaging.publishing
 					using var connection = _connectionFactory.CreateConnection();
 					using var channel = connection.CreateModel();
 
+					// Сообщение теперь тоже персистентное
+					var properties = channel.CreateBasicProperties();
+					properties.Persistent = true;
+
+					// Очередь теперь постоянная
+					channel.QueueDeclare(
+						queue: queueName,
+						durable: true,
+						exclusive: false,
+						autoDelete: false,
+						arguments: null);
+
+					//while (!QueueExists(channel, queueName))
+					//{
+					//	_logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", queueName);
+					//	Task.Delay(1000, stoppingToken);
+					//}
+
 					var jsonString = JsonConvert.SerializeObject(payload);
 					var body = Encoding.UTF8.GetBytes(jsonString);
 
 					channel.BasicPublish(
 						exchange: "",
 						routingKey: queueName,
-						basicProperties: null,
+						basicProperties: properties,
 						body: body
 					);
 

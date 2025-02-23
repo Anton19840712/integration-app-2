@@ -22,12 +22,12 @@ public class TeachIntegrationService(
 			logger.LogInformation("Выполняется ParseJsonAsync.");
 			var parsedModel = await integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
 
-			//2
-			logger.LogInformation("Выполняется CreateQueuesAsync.");
-			var resultOfCreation = await integrationFacade.CreateQueuesAsync(
-				parsedModel.InQueueName,
-				parsedModel.OutQueueName,
-				stoppingToken);
+			////2
+			//logger.LogInformation("Выполняется CreateQueuesAsync.");
+			//var resultOfCreation = await integrationFacade.CreateQueuesAsync(
+			//	parsedModel.InQueueName,
+			//	parsedModel.OutQueueName,
+			//	stoppingToken);
 
 			//3
 			logger.LogInformation("Выполняется ExecuteTeachAsync.");
@@ -43,7 +43,7 @@ public class TeachIntegrationService(
 				stoppingToken);
 
 			return [
-				resultOfCreation,
+				//resultOfCreation,
 				apiStatus,
 				new ResponseIntegration {
 					Message = $"Cлушатель очeреди {parsedModel.OutQueueName} запустился.",

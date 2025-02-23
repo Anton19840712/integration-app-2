@@ -63,9 +63,17 @@ public class RabbitMqService : IRabbitMqService
 		await Task.Run(() =>
 		{
 			using var channel = PersistentConnection.CreateModel();
-			channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+
+			// Очередь теперь постоянная
+			channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+
 			var body = Encoding.UTF8.GetBytes(message);
-			channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
+
+			// Сообщение теперь тоже персистентное
+			var properties = channel.CreateBasicProperties();
+			properties.Persistent = true;
+
+			channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: properties, body: body);
 		});
 	}
 

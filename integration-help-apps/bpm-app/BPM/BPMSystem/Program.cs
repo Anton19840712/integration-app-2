@@ -121,18 +121,19 @@ public class Program
 		// при старте приложения идем в таблицу teaching сущностей
 		// запускаем менеджер, который создает очереди
 		// стартуем каждый из лисенеров
-		app.Lifetime.ApplicationStarted.Register(async () =>
-		{
-			using var scope = app.Services.CreateScope();
-			var teachingRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<TeachingEntity>>();
-			var listenerManager = scope.ServiceProvider.GetRequiredService<QueueListenerManager>();
 
-			var teachingEntities = await teachingRepository.GetAllAsync();
-			foreach (var entity in teachingEntities)
-			{
-				listenerManager.StartListener(entity.InQueueName);
-			}
-		});
+		//app.Lifetime.ApplicationStarted.Register(async () =>
+		//{
+		//	using var scope = app.Services.CreateScope();
+		//	var teachingRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<TeachingEntity>>();
+		//	var listenerManager = scope.ServiceProvider.GetRequiredService<QueueListenerManager>();
+
+		//	var teachingEntities = await teachingRepository.GetAllAsync();
+		//	foreach (var entity in teachingEntities)
+		//	{
+		//		listenerManager.StartListener(entity.InQueueName);
+		//	}
+		//});
 
 		app.Run();
 	}

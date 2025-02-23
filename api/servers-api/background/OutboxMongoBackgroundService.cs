@@ -21,7 +21,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 		_logger.LogInformation("OutboxMongoBackgroundService запущен.");
 
 		// Параллельно запускаем фоновую очистку старых сообщений
-		_ = Task.Run(() => CleanupOldMessagesAsync(token), token);
+		//_ = Task.Run(() => CleanupOldMessagesAsync(token), token);
 
 		while (!token.IsCancellationRequested)
 		{

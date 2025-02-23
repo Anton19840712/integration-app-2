@@ -1,16 +1,17 @@
-﻿using RabbitMQ.Client.Events;
-using RabbitMQ.Client;
+﻿using System.Collections.Concurrent;
 using System.Text;
-using System.Collections.Concurrent;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using servers_api.models.response;
 
 namespace servers_api.services.brokers.bpmintegration
 {
 
 	/// <summary>
-	/// RabbitMqQueueListener с использованием промежуточной конкурентной коллекции с накоплением сообщений и последующей выдачей в созданный объект сервера.
+	/// RabbitMqQueueListener с использованием промежуточной конкурентной коллекции с накоплением сообщений и последующей выдачей на сервер.
 	/// Можно было передавать промежуточно поточно с использованием различных решений,
-	/// но это оказалось наиболее коротким. В зависимости от поведения системы возможно добавление раличных реализаций: networkstream, kafka, database and outbox. Но они на данный mvp момент излишни.
+	/// но это оказалось наиболее коротким. В зависимости от поведения системы возможно
+	/// добавление раличных реализаций: networkstream, kafka, database and outbox. Но они на данный mvp момент излишни.
 	/// </summary>
 	public class RabbitMqQueueListener(
 		IConnectionFactory connectionFactory,
@@ -29,6 +30,13 @@ namespace servers_api.services.brokers.bpmintegration
 			{
 				_connection = connectionFactory.CreateConnection();
 				_channel = _connection.CreateModel();
+
+				// Ждём, пока очередь не появится
+				while (!QueueExists(_channel, _queueName))
+				{
+					logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", _queueName);
+					await Task.Delay(1000, stoppingToken);
+				}
 
 				var consumer = new EventingBasicConsumer(_channel);
 				consumer.Received += async (model, ea) => await HandleMessageAsync(ea);
@@ -51,6 +59,20 @@ namespace servers_api.services.brokers.bpmintegration
 			}
 		}
 
+		private bool QueueExists(IModel channel, string queueName)
+		{
+			try
+			{
+				using var tempChannel = _connection.CreateModel(); // Создаём новый канал для проверки
+				tempChannel.QueueDeclarePassive(queueName);
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
 		private Task HandleMessageAsync(BasicDeliverEventArgs ea)
 		{
 			var message = Encoding.UTF8.GetString(ea.Body.ToArray());
@@ -61,6 +83,7 @@ namespace servers_api.services.brokers.bpmintegration
 
 			return Task.CompletedTask;
 		}
+
 
 		public void StopListening()
 		{

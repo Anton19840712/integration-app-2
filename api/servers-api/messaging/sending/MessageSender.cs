@@ -36,7 +36,6 @@ public class MessageSender : IMessageSender
 			while (!cancellationToken.IsCancellationRequested && client.Connected)
 			{
 				// если мы сервер, мы собираем информацию из очереди, но до этого нам было нужно сделать запрос в bpm:
-
 				var elements = await _rabbitMqQueueListener.GetCollectedMessagesAsync(cancellationToken);
 
 				if (elements.Count == 0)
