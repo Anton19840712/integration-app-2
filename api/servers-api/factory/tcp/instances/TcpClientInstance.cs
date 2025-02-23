@@ -25,7 +25,6 @@ public class TcpClientInstance : IUpClient
 		int serverPort,
 		CancellationToken token)
 	{
-		// переменные, участвующие в динамическом поведении клиета при обработке соединений:
 		int maxAttempts = instanceModel.ClientConnectionSettings.AttemptsToFindExternalServer;
 		int timeout = instanceModel.ClientConnectionSettings.ConnectionTimeoutMs;
 		int retryDelay = instanceModel.ClientConnectionSettings.RetryDelayMs;
@@ -75,3 +74,4 @@ public class TcpClientInstance : IUpClient
 		return new ResponseIntegration { Message = "Не удалось подключиться", Result = false };
 	}
 }
+

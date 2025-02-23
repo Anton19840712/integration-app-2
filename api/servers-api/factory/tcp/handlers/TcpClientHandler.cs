@@ -29,14 +29,6 @@ public class TcpClientHandler : ITcpClientHandler
 		_outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
 	}
 
-	/// <summary>
-	/// Метод для подключения к внешнему серверу:
-	/// </summary>
-	/// <param name="serverHost"></param>
-	/// <param name="serverPort"></param>
-	/// <param name="token"></param>
-	/// <param name="instanceModel"></param>
-	/// <returns></returns>
 	public async Task<bool> TryConnectAsync(
 		string serverHost,
 		int serverPort,
@@ -65,10 +57,8 @@ public class TcpClientHandler : ITcpClientHandler
 			if (_client.Connected)
 			{
 				_stream = _client.GetStream();
-				// отправляем приветственное сообщение внешнему серверу:
+				// отправляем приветственное сообщение их серверу:
 				await SendWelcomeMessageAsync().ConfigureAwait(false);
-
-				// получаем от внешнего сервера сообщения:
 				_ = Task.Run(() => ReceiveMessagesAsync(), _token);
 				return true;
 			}
@@ -133,18 +123,17 @@ public class TcpClientHandler : ITcpClientHandler
 					break;
 				}
 
-				// читаем сообщение, которое нам прислал внешний сервер:
 				string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
-				// затем обогащаем его по нашему усмотрению дополнительной информацией для дальнейшего использования
-				// а так же сразу же приземляем полученное сообщение в нашу базу mongo в таблицу outbox как событие:
+				//обогащаем его перед этим информацией для дальнейшего использования
+				//сразу же приземляем полученное сообщение в нашу базу mongo
 				await _outboxRepository.SaveMessageAsync(new OutboxMessage
 				{
 					Message = message,
 					Source = $"{_serverHost}:{_serverPort}",
 					InQueueName = _inQueueName,
 					OutQueueName = _outQueueName,
-					RoutingKey = "routing_key_"+_protocolName
+					RoutingKey = "routing_key_" + _protocolName
 
 				}).ConfigureAwait(false);
 
@@ -187,10 +176,10 @@ public class TcpClientHandler : ITcpClientHandler
 			if (await TryConnectAsync(
 				_serverHost,
 				_serverPort,
-				_token, new ClientInstanceModel 
+				_token, new ClientInstanceModel
 				{
 					ClientHost = _clientHost,
-					ClientPort = _clientPort 
+					ClientPort = _clientPort
 				}
 				)
 			)

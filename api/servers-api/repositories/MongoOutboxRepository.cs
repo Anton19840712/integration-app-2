@@ -4,14 +4,9 @@ using servers_api.models.outbox;
 
 namespace servers_api.repositories;
 
-public class MongoOutboxRepository : IOutboxRepository
+public class MongoOutboxRepository(IMongoDatabase database) : IOutboxRepository
 {
-	private readonly IMongoCollection<OutboxMessage> _collection;
-
-	public MongoOutboxRepository(IMongoDatabase database)
-	{
-		_collection = database.GetCollection<OutboxMessage>("outbox_messages");
-	}
+	private readonly IMongoCollection<OutboxMessage> _collection = database.GetCollection<OutboxMessage>("outbox_messages");
 
 	/// <summary>
 	/// Сохраняем полученное сообщение в MongoDB

@@ -46,7 +46,7 @@ try
 	app.MapControllers();
 	app.MapCommonApiEndpoints(factory);
 
-	Log.Information("Приложение запускается...");
+	Log.Information("Динамический шлюз запущен и готов к эсплуатации.");
 	app.Run();
 }
 catch (Exception ex)
@@ -58,6 +58,5 @@ finally
 {
 	cts.Cancel();
 	cts.Dispose();
-
 	Log.CloseAndFlush();
 }
