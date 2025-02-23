@@ -40,7 +40,7 @@ public class IntegrationController : ControllerBase
 
 			if (existingModel != null)
 			{
-				// Если модель найдена — обновляем
+				parsedModel.Id = existingModel.Id; // Сохраняем ID
 				await _teachingRepository.UpdateAsync(existingModel.Id, parsedModel);
 			}
 			else

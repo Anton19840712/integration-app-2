@@ -2,6 +2,7 @@
 using BPMMessaging.models.entities;
 using BPMMessaging.models.settings;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Linq.Expressions;
 
@@ -43,8 +44,43 @@ namespace BPMMessaging.repository
 		public async Task InsertAsync(T entity) =>
 			await _collection.InsertOneAsync(entity);
 
-		public async Task UpdateAsync(string id, T entity) =>
-			await _collection.ReplaceOneAsync(Builders<T>.Filter.Eq("_id", id), entity);
+		public async Task UpdateAsync(string id, T updatedEntity)
+		{
+			var filter = Builders<T>.Filter.Eq("_id", ObjectId.Parse(id));
+			var existingEntity = await _collection.Find(filter).FirstOrDefaultAsync();
+
+			if (existingEntity == null)
+			{
+				throw new InvalidOperationException($"Документ с ID {id} не найден");
+			}
+
+			var updateDefinitionBuilder = Builders<T>.Update;
+			var updates = new List<UpdateDefinition<T>>();
+
+			// Перебираем все свойства модели
+			foreach (var property in typeof(T).GetProperties())
+			{
+				if (property.Name == "Version") continue; // Пропускаем Version, т.к. он изменяется отдельно
+
+				var oldValue = property.GetValue(existingEntity);
+				var newValue = property.GetValue(updatedEntity);
+
+				if (newValue != null && !newValue.Equals(oldValue))
+				{
+					updates.Add(updateDefinitionBuilder.Set(property.Name, newValue));
+				}
+			}
+
+			// Добавляем обновление времени
+			updates.Add(updateDefinitionBuilder.Set("UpdatedAtUtc", DateTime.UtcNow));
+			updates.Add(updateDefinitionBuilder.Inc("Version", 1));
+
+			if (updates.Count > 0)
+			{
+				var updateDefinition = updateDefinitionBuilder.Combine(updates);
+				await _collection.UpdateOneAsync(filter, updateDefinition);
+			}
+		}
 
 		public async Task DeleteAsync(string id) =>
 			await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", id));
