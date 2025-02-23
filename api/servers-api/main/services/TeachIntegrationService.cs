@@ -22,20 +22,13 @@ public class TeachIntegrationService(
 			logger.LogInformation("Выполняется ParseJsonAsync.");
 			var parsedModel = await integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
 
-			////2
-			//logger.LogInformation("Выполняется CreateQueuesAsync.");
-			//var resultOfCreation = await integrationFacade.CreateQueuesAsync(
-			//	parsedModel.InQueueName,
-			//	parsedModel.OutQueueName,
-			//	stoppingToken);
-
-			//3
+			//2
 			logger.LogInformation("Выполняется ExecuteTeachAsync.");
 			var apiStatus = await integrationFacade.TeachBpmAsync(
 				parsedModel,
 				stoppingToken);
 
-			//4
+			//3
 			logger.LogInformation("Запускаем слушателя в фоне для очереди: {Queue}", parsedModel.OutQueueName);
 			_ = Task.Run(() => integrationFacade.StartListeningAsync(
 				parsedModel.OutQueueName,
