@@ -7,7 +7,7 @@ namespace servers_api.models.entities
 	{
 		[BsonId]
 		[BsonRepresentation(BsonType.ObjectId)]
-		public string Id { get; set; }
+		public Guid Id { get; set; }
 		public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAtUtc { get; set; }
 		public DateTime? DeletedAtUtc { get; set; }

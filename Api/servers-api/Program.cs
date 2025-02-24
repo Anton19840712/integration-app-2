@@ -36,6 +36,13 @@ try
 	services.AddAutoMapper(typeof(MappingProfile));
 	services.AddOutboxServices();
 	services.AddValidationServices();
+	services.AddSingleton<QueuesRepository>();
+
+	services.AddTransient<RabbitMqQueueListener>();
+	services.AddSingleton<QueueListenerService>();
+
+	services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
+
 
 	var app = builder.Build();
 
@@ -49,10 +56,7 @@ try
 
 	Log.Information("Динамический шлюз запущен и готов к эсплуатации.");
 	
-	services.AddScoped<QueuesRepository>();
 
-	services.AddTransient<RabbitMqQueueListener>();
-	services.AddSingleton<QueueListenerService>();
 
 	// Удалить, если читаешь 3 раз:
 	//using (var scope = app.Services.CreateScope())

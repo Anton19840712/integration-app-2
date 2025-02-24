@@ -7,6 +7,7 @@ namespace servers_api.models.internallayer.common;
 /// </summary>
 public class CombinedModel
 {
+	public Guid Id { get; set; } = Guid.NewGuid();
 	public string InQueueName { get; set; }
 	public string OutQueueName { get; set; }
 	public string Protocol { get; set; }

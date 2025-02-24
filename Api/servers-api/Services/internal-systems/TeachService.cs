@@ -17,7 +17,7 @@ public class TeachService(
 	{
 		logger.LogInformation("Начало обработки TeachBPMNAsync");
 
-		var modelForCardSystem = new InMessage
+		var modelForBpmSystem = new InMessage
 		{
 			InternalModel = parsedModel.InternalModel,
 			QueuesNames = new QueuesNames
@@ -33,7 +33,7 @@ public class TeachService(
 		{
 			// Сериализация объекта в JSON
 			var jsonContent = new StringContent(
-				JsonConvert.SerializeObject(modelForCardSystem),
+				JsonConvert.SerializeObject(modelForBpmSystem),
 				Encoding.UTF8,
 				"application/json"
 			);
