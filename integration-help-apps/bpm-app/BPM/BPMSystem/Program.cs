@@ -1,6 +1,5 @@
 using BPMEngine.DB.Consts;
 using BPMIntegration.Services.Background.BPMIntegration.Services.Background;
-using BPMMessaging.background.queuelistenersinfrastructure;
 using BPMMessaging.mapping;
 using BPMMessaging.models.entities;
 using BPMMessaging.models.settings;
@@ -94,8 +93,7 @@ namespace BPMSystem
 			});
 
 			builder.Services.AddAutoMapper(typeof(MappingProfile));
-
-			builder.Services.AddSingleton<IQueueService, QueueService>();
+			builder.Services.AddTransient<RabbitMqQueueListener>();
 
 			var app = builder.Build();
 
@@ -118,19 +116,35 @@ namespace BPMSystem
 			app.UseRouting();
 			app.MapControllers();
 
-			// Запуск приложения в фоновом режиме
-			var scope = app.Services.CreateScope();
-			var teachingRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<TeachingEntity>>();
-			var listenerManager = scope.ServiceProvider.GetRequiredService<IQueueService>();
+			using var scope = app.Services.CreateScope();
+			var serviceProvider = scope.ServiceProvider;
+
+			var connectionFactory = serviceProvider.GetRequiredService<IConnectionFactory>();
+			var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+			var teachingRepository = serviceProvider.GetRequiredService<IMongoRepository<TeachingEntity>>();
 
 			var teachingEntities = await teachingRepository.GetAllAsync();
-			foreach (var entity in teachingEntities)
+			var consumers = new List<RabbitMqQueueListener>();
+
+			var cts = new CancellationTokenSource();
+
+			foreach (var teachingEntity in teachingEntities)
 			{
-				listenerManager.StartListener(entity.InQueueName);
+				var queueName = teachingEntity.InQueueName;
+				var logger = loggerFactory.CreateLogger<RabbitMqQueueListener>();
+
+				var listener = new RabbitMqQueueListener(connectionFactory, logger);
+				await listener.StartListeningAsync(queueName, cts.Token);
+				consumers.Add(listener);
 			}
 
-			// Запуск основного приложения
 			await app.RunAsync();
+
+			// Останавливаем консюмеры при завершении
+			foreach (var listener in consumers)
+			{
+				listener.StopListening();
+			}
 		}
 	}
 }
