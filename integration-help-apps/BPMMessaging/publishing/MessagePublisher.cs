@@ -28,18 +28,6 @@ namespace BPMMessaging.publishing
 				Password = rabbitMqSettings.Password
 			};
 		}
-		private bool QueueExists(IModel channel, string queueName)
-		{
-			try
-			{
-				channel.QueueDeclarePassive(queueName);
-				return true;
-			}
-			catch (Exception)
-			{
-				return false;
-			}
-		}
 
 		public async Task PublishAsync(
 			string queueName,
@@ -64,12 +52,6 @@ namespace BPMMessaging.publishing
 						exclusive: false,
 						autoDelete: false,
 						arguments: null);
-
-					//while (!QueueExists(channel, queueName))
-					//{
-					//	_logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", queueName);
-					//	Task.Delay(1000, stoppingToken);
-					//}
 
 					var jsonString = JsonConvert.SerializeObject(payload);
 					var body = Encoding.UTF8.GetBytes(jsonString);

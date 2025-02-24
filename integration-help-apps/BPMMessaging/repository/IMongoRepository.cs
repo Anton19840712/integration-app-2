@@ -9,6 +9,7 @@ namespace BPMMessaging.repository
 		Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter);
 		Task InsertAsync(T entity);
 		Task UpdateAsync(string id, T entity);
-		Task DeleteAsync(string id);
+		Task DeleteByIdAsync(string id);
+		Task<int> DeleteByTtlAsync(TimeSpan olderThan);
 	}
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using BPMMessaging.models.dtos;
 using BPMMessaging.publishing;
 using Microsoft.Extensions.DependencyInjection;
+using BPMMessaging.repository;
 
 namespace BPMIntegration.Services.Background
 {
@@ -16,13 +17,16 @@ namespace BPMIntegration.Services.Background
 	{
 		public class OutboxIntegrationTrackingService : IHostedService
 		{
+			private readonly IMongoRepository<OutboxMessage> _outboxRepository;
 			private readonly IServiceScopeFactory _serviceScopeFactory;
 			private readonly ILogger<OutboxIntegrationTrackingService> _logger;
 
 			public OutboxIntegrationTrackingService(
+				IMongoRepository<OutboxMessage> outboxRepository,
 				IServiceScopeFactory serviceScopeFactory,
 				ILogger<OutboxIntegrationTrackingService> logger)
 			{
+				_outboxRepository = outboxRepository;
 				_serviceScopeFactory = serviceScopeFactory;
 				_logger = logger;
 			}
@@ -30,6 +34,9 @@ namespace BPMIntegration.Services.Background
 			public Task StartAsync(CancellationToken cancellationToken)
 			{
 				_logger.LogInformation("OutboxProcessorService запущен.");
+
+				// Параллельно запускаем фоновую очистку старых сообщений
+				//_ = Task.Run(() => CleanupOldMessagesAsync(cancellationToken), cancellationToken);
 
 				_ = Task.Run(async () =>
 				{
@@ -60,7 +67,30 @@ namespace BPMIntegration.Services.Background
 				_logger.LogInformation("OutboxProcessorService остановлен.");
 				return Task.CompletedTask;
 			}
+			private async Task CleanupOldMessagesAsync(CancellationToken token)
+			{
+				const int ttlDifference = 10;  // Установите желаемый интервал сущестования объекта в базе данных.
+				const int intervalInSeconds = 10;  // Установите желаемый интервал для повторной проверки сообщений, которые требуется удалить.
 
+				while (!token.IsCancellationRequested)
+				{
+					try
+					{
+						int deletedCount = await _outboxRepository.DeleteByTtlAsync(TimeSpan.FromSeconds(ttlDifference));
+						if (deletedCount != 0)
+						{
+							_logger.LogInformation($"OutboxMongoBackgroundService: yдалено {deletedCount} старых сообщений из базы ProtocolEvenrtsDB, коллекции outbox_messages.");
+						}
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Ошибка при очистке старых сообщений Outbox.");
+					}
+
+					// Запуск очистки каждые intervalInSeconds
+					await Task.Delay(TimeSpan.FromSeconds(intervalInSeconds), token);
+				}
+			}
 			private async Task ProcessOutboxMessagesAsync(CancellationToken cancellationToken)
 			{
 				using var scope = _serviceScopeFactory.CreateScope();
@@ -94,7 +124,7 @@ namespace BPMIntegration.Services.Background
 					}
 					else
 					{
-						_logger.LogInformation("Очередь in пуста, обработка пропущена.");
+						_logger.LogInformation("Коллекция OutboxMessages не содержит необработанных сообщений.");
 					}
 				}
 				catch (OperationCanceledException)

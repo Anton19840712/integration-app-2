@@ -30,7 +30,7 @@ public class IntegrationController : ControllerBase
 	{
 		try
 		{
-			// 1. Парсим входящую модель
+			// 1. Парсим входящую модель:
 			var parsedModel = _jsonParsingService.ParseJson<TeachingEntity>(model);
 
 			// 2. Проверяем, есть ли уже такая модель в БД
@@ -40,12 +40,12 @@ public class IntegrationController : ControllerBase
 
 			if (existingModel != null)
 			{
-				parsedModel.Id = existingModel.Id; // Сохраняем ID
+				parsedModel.Id = existingModel.Id; // Сохраняем ID:
 				await _teachingRepository.UpdateAsync(existingModel.Id, parsedModel);
 			}
 			else
 			{
-				// Если модели нет — вставляем новую
+				// Если модели нет — вставляем новую:
 				await _teachingRepository.InsertAsync(parsedModel);
 			}
 

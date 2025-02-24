@@ -82,7 +82,25 @@ namespace BPMMessaging.repository
 			}
 		}
 
-		public async Task DeleteAsync(string id) =>
+		public async Task DeleteByIdAsync(string id) =>
 			await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", id));
+
+		public async Task<int> DeleteByTtlAsync(TimeSpan olderThan)
+		{
+			if (typeof(T) != typeof(OutboxMessage))
+			{
+				throw new InvalidOperationException("Метод поддерживает только OutboxMessage.");
+			}
+
+			var filter = Builders<OutboxMessage>.Filter.And(
+				Builders<OutboxMessage>.Filter.Lt(m => m.CreatedAt, DateTime.UtcNow - olderThan),
+				Builders<OutboxMessage>.Filter.Eq(m => m.IsProcessed, true)
+			);
+
+			var collection = _collection as IMongoCollection<OutboxMessage>;
+			var result = await collection.DeleteManyAsync(filter);
+
+			return (int)result.DeletedCount;
+		}
 	}
 }
