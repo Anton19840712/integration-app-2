@@ -25,7 +25,6 @@ static class ProtocolProcessingConfiguration
 
 		// main facades:
 		services.AddTransient<IIntegrationFacade, IntegrationFacade>();
-		services.AddTransient<IMessageFacade, MessageFacade>();
 		services.AddTransient<IQueueFacade, QueueFacade>();
 		services.AddTransient<IProcessingFacade, ProcessingFacade>();
 

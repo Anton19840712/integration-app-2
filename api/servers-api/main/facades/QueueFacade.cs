@@ -1,9 +1,8 @@
-﻿using servers_api.services.brokers.bpmintegration;
-using servers_api.services.brokers.tcprest;
-
-namespace servers_api.main.facades
+﻿namespace servers_api.main.facades
 {
-	public class QueueFacade(IRabbitQueuesCreator rabbitQueueManager, IRabbitMqQueueListener queueListener, ILogger<QueueFacade> logger) : IQueueFacade
+	public class QueueFacade(
+		IRabbitMqQueueListener queueListener,
+		ILogger<QueueFacade> logger) : IQueueFacade
 	{
 		public async Task StartListeningAsync(string outQueue, CancellationToken stoppingToken)
 		{

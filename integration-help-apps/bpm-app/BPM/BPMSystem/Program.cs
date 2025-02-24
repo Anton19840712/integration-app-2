@@ -1,6 +1,7 @@
 using BPMEngine.DB.Consts;
 using BPMIntegration.Services.Background.BPMIntegration.Services.Background;
 using BPMMessaging.mapping;
+using BPMMessaging.models.dtos;
 using BPMMessaging.models.entities;
 using BPMMessaging.models.settings;
 using BPMMessaging.parsing;
@@ -78,6 +79,9 @@ namespace BPMSystem
 			});
 
 			builder.Services.AddSingleton(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+			builder.Services.AddSingleton<IMongoRepository<IncidentEntity>, MongoRepository<IncidentEntity>>();
+			builder.Services.AddSingleton<IMongoRepository<OutboxMessage>, MongoRepository<OutboxMessage>>();
+
 
 			// Создание фабрики RabbitMQ с использованием IOptions
 			builder.Services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
@@ -94,6 +98,7 @@ namespace BPMSystem
 
 			builder.Services.AddAutoMapper(typeof(MappingProfile));
 			builder.Services.AddTransient<RabbitMqQueueListener>();
+			builder.Services.AddSingleton<QueueListenerService>();
 
 			var app = builder.Build();
 
@@ -116,35 +121,24 @@ namespace BPMSystem
 			app.UseRouting();
 			app.MapControllers();
 
-			using var scope = app.Services.CreateScope();
-			var serviceProvider = scope.ServiceProvider;
-
-			var connectionFactory = serviceProvider.GetRequiredService<IConnectionFactory>();
-			var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-			var teachingRepository = serviceProvider.GetRequiredService<IMongoRepository<TeachingEntity>>();
-
-			var teachingEntities = await teachingRepository.GetAllAsync();
-			var consumers = new List<RabbitMqQueueListener>();
-
 			var cts = new CancellationTokenSource();
 
-			foreach (var teachingEntity in teachingEntities)
+			using (var scope = app.Services.CreateScope())
 			{
-				var queueName = teachingEntity.InQueueName;
-				var logger = loggerFactory.CreateLogger<RabbitMqQueueListener>();
+				var queueListenerService = scope.ServiceProvider.GetRequiredService<QueueListenerService>();
+				var consumers = await queueListenerService.StartQueueListenersAsync(cts.Token);
 
-				var listener = new RabbitMqQueueListener(connectionFactory, logger);
-				await listener.StartListeningAsync(queueName, cts.Token);
-				consumers.Add(listener);
+				app.Lifetime.ApplicationStopping.Register(() =>
+				{
+					foreach (var listener in consumers)
+					{
+						listener.StopListening();
+					}
+				});
 			}
 
 			await app.RunAsync();
-
-			// Останавливаем консюмеры при завершении
-			foreach (var listener in consumers)
-			{
-				listener.StopListening();
-			}
 		}
 	}
 }
+ 

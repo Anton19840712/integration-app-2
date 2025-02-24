@@ -1,5 +1,6 @@
 ﻿using BPMMessaging.enums;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace BPMMessaging.models.dtos
@@ -43,6 +44,11 @@ namespace BPMMessaging.models.dtos
 		public OutboxMessage()
 		{
 			CreatedAtFormatted = FormattedDate; // Заполняем перед сохранением
+		}
+
+		public string GetPayloadJson()
+		{
+			return Payload?.ToJson(new JsonWriterSettings()) ?? string.Empty;
 		}
 	}
 }

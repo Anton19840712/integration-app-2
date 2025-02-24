@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using AutoMapper;
 using BPMMessaging.models.dtos;
 using BPMMessaging.models.settings;
 using Microsoft.Extensions.Logging;
@@ -12,11 +13,14 @@ namespace BPMMessaging.publishing
 	{
 		private readonly ILogger<MessagePublisher> _logger;
 		private readonly ConnectionFactory _connectionFactory;
+		private readonly IMapper _mapper;
 
 		public MessagePublisher(
+			IMapper mapper,
 			ILogger<MessagePublisher> logger,
 			IOptions<RabbitMqSettings> rabbitMqOptions)
 		{
+			_mapper = mapper;
 			_logger = logger;
 			var rabbitMqSettings = rabbitMqOptions.Value;
 
@@ -53,7 +57,11 @@ namespace BPMMessaging.publishing
 						autoDelete: false,
 						arguments: null);
 
-					var jsonString = JsonConvert.SerializeObject(payload);
+					OutModel outModel = _mapper.Map<OutModel>(payload);
+
+					// Теперь сериализуем payload
+					var jsonString = JsonConvert.SerializeObject(outModel);
+
 					var body = Encoding.UTF8.GetBytes(jsonString);
 
 					channel.BasicPublish(

@@ -1,106 +1,73 @@
-﻿using System.Collections.Concurrent;
-using System.Text;
+﻿using System.Text;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using servers_api.models.response;
+using servers_api.repositories;
 
-namespace servers_api.services.brokers.bpmintegration
+public class RabbitMqQueueListener : IRabbitMqQueueListener
 {
+	private readonly ILogger<RabbitMqQueueListener> _logger;
+	private readonly IConnectionFactory _connectionFactory;
+	private readonly QueuesRepository _queuesRepository;
 
-	/// <summary>
-	/// RabbitMqQueueListener с использованием промежуточной конкурентной коллекции с накоплением сообщений и последующей выдачей на сервер.
-	/// Можно было передавать промежуточно поточно с использованием различных решений,
-	/// но это оказалось наиболее коротким. В зависимости от поведения системы возможно
-	/// добавление раличных реализаций: networkstream, kafka, database and outbox. Но они на данный mvp момент излишни.
-	/// </summary>
-	public class RabbitMqQueueListener(
+	private IConnection _connection;
+	private IModel _channel;
+	private string _queueOutName;
+
+	public RabbitMqQueueListener(
 		IConnectionFactory connectionFactory,
-		ILogger<RabbitMqQueueListener> logger) : IRabbitMqQueueListener
+		ILogger<RabbitMqQueueListener> logger,
+		QueuesRepository queuesRepositoryy)
 	{
-		private IConnection _connection;
-		private IModel _channel;
-		private string _queueName;
-		private readonly ConcurrentQueue<ResponseIntegration> _collectedMessages = new();
+		_connectionFactory = connectionFactory;
+		_logger = logger;
+		_queuesRepository = queuesRepositoryy;
+	}
 
-		public async Task StartListeningAsync(string queueName, CancellationToken stoppingToken)
+	public async Task StartListeningAsync(
+		string queueOutName,
+		CancellationToken stoppingToken)
+	{
+		_queueOutName = queueOutName;
+		_connection = _connectionFactory.CreateConnection();
+		_channel = _connection.CreateModel();
+
+		while (!QueueExists(_channel, _queueOutName))
 		{
-			_queueName = queueName;
-
-			try
-			{
-				_connection = connectionFactory.CreateConnection();
-				_channel = _connection.CreateModel();
-
-				// Ждём, пока очередь не появится
-				while (!QueueExists(_channel, _queueName))
-				{
-					logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", _queueName);
-					await Task.Delay(1000, stoppingToken);
-				}
-
-				var consumer = new EventingBasicConsumer(_channel);
-				consumer.Received += async (model, ea) => await HandleMessageAsync(ea);
-
-				_channel.BasicConsume(queue: _queueName, autoAck: true, consumer: consumer);
-				logger.LogInformation("Слушатель очереди {Queue} запущен", _queueName);
-
-				while (!stoppingToken.IsCancellationRequested)
-				{
-					await Task.Delay(5000, stoppingToken); // Ожидание перед обработкой следующей партии
-				}
-			}
-			catch (Exception ex)
-			{
-				logger.LogError(ex, "Ошибка при прослушивании {Queue}", _queueName);
-			}
-			finally
-			{
-				StopListening();
-			}
+			_logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", _queueOutName);
+			await Task.Delay(1000, stoppingToken);
 		}
 
-		private bool QueueExists(IModel channel, string queueName)
+		var consumer = new EventingBasicConsumer(_channel);
+		consumer.Received += async (model, ea) => await HandleMessageAsync(ea);
+
+		_channel.BasicConsume(queue: _queueOutName, autoAck: true, consumer: consumer);
+		_logger.LogInformation("Слушатель очереди {Queue} запущен", _queueOutName);
+	}
+
+	private bool QueueExists(IModel channel, string queueName)
+	{
+		try
 		{
-			try
-			{
-				using var tempChannel = _connection.CreateModel(); // Создаём новый канал для проверки
-				tempChannel.QueueDeclarePassive(queueName);
-				return true;
-			}
-			catch (Exception)
-			{
-				return false;
-			}
+			channel.QueueDeclarePassive(queueName);
+			return true;
 		}
-
-		private Task HandleMessageAsync(BasicDeliverEventArgs ea)
+		catch
 		{
-			var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-
-			logger.LogInformation("Получено сообщение из очереди {Queue}: {Message}", _queueName, message);
-
-			_collectedMessages.Enqueue(new ResponseIntegration { Message = message, Result = true });
-
-			return Task.CompletedTask;
+			return false;
 		}
+	}
 
+	private async Task HandleMessageAsync(BasicDeliverEventArgs ea)
+	{
+		var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+		_logger.LogInformation("Получено сообщение из очереди {Queue}: {Message}", _queueOutName, message);
+		await Task.Delay(0);
+	}
 
-		public void StopListening()
-		{
-			_channel?.Close();
-			_connection?.Close();
-			logger.LogInformation("Слушатель {Queue} остановлен", _queueName);
-		}
-
-		public Task<List<ResponseIntegration>> GetCollectedMessagesAsync(CancellationToken stoppingToken)
-		{
-			var messagesList = new List<ResponseIntegration>();
-
-			while (_collectedMessages.TryDequeue(out var message))
-			{
-				messagesList.Add(message);
-			}
-			return Task.FromResult(messagesList);
-		}
+	public void StopListening()
+	{
+		_channel?.Close();
+		_connection?.Close();
+		_logger.LogInformation("Слушатель {Queue} остановлен", _queueOutName);
 	}
 }

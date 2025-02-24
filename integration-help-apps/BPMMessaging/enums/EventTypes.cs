@@ -2,7 +2,7 @@
 {
 	public enum EventTypes
 	{
-		Created,
+		Received,
 		Processed
 	}
 }

@@ -1,7 +1,6 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 using servers_api.messaging.formatting;
-using servers_api.services.brokers.bpmintegration;
 
 namespace servers_api.messaging.sending;
 
@@ -36,21 +35,22 @@ public class MessageSender : IMessageSender
 			while (!cancellationToken.IsCancellationRequested && client.Connected)
 			{
 				// если мы сервер, мы собираем информацию из очереди, но до этого нам было нужно сделать запрос в bpm:
-				var elements = await _rabbitMqQueueListener.GetCollectedMessagesAsync(cancellationToken);
+				// TO DO: здесь будет нужно доработать - зачем нам нужно что-то собирать
+				// var elements = await _rabbitMqQueueListener.GetCollectedMessagesAsync(cancellationToken);
 
-				if (elements.Count == 0)
-				{
-					await Task.Delay(1000, cancellationToken);
-					continue;
-				}
+				//if (elements.Count == 0)
+				//{
+				//	await Task.Delay(1000, cancellationToken);
+				//	continue;
+				//}
 
-				foreach (var message in elements)
-				{
-					string formattedJson = _messageFormatter.FormatJson(message.Message);
-					await writer.WriteLineAsync(formattedJson);
-					_logger.LogInformation("Отправлено клиенту:\n{Json}", formattedJson);
-					await Task.Delay(2000, cancellationToken);
-				}
+				//foreach (var message in elements)
+				//{
+				//	string formattedJson = _messageFormatter.FormatJson(message.Message);
+				//	await writer.WriteLineAsync(formattedJson);
+				//	_logger.LogInformation("Отправлено клиенту:\n{Json}", formattedJson);
+				//	await Task.Delay(2000, cancellationToken);
+				//}
 			}
 		}
 		catch (Exception ex)

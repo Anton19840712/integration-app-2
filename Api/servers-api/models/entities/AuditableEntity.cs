@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 
-namespace BPMMessaging.models.entities
+namespace servers_api.models.entities
 {
 	public abstract class AuditableEntity
 	{

@@ -1,10 +1,12 @@
 using Serilog;
 using servers_api.api.minimalapi;
 using servers_api.middleware;
+using servers_api.repositories;
 
 Console.Title = "integration api";
 
 var builder = WebApplication.CreateBuilder(args);
+var cts = new CancellationTokenSource();
 
 // Настройка логирования
 builder.Host.UseSerilog((ctx, cfg) =>
@@ -15,7 +17,6 @@ builder.Host.UseSerilog((ctx, cfg) =>
 		.FromLogContext();
 });
 
-CancellationTokenSource cts = null;
 try
 {
 	//GateConfiguration.ConfigureDynamicGate(args, builder);
@@ -47,7 +48,28 @@ try
 	app.MapCommonApiEndpoints(factory);
 
 	Log.Information("Динамический шлюз запущен и готов к эсплуатации.");
-	app.Run();
+	
+	services.AddScoped<QueuesRepository>();
+
+	services.AddTransient<RabbitMqQueueListener>();
+	services.AddSingleton<QueueListenerService>();
+
+	// Удалить, если читаешь 3 раз:
+	//using (var scope = app.Services.CreateScope())
+	//{
+	//	var queueListenerService = scope.ServiceProvider.GetRequiredService<QueueListenerService>();
+	//	var consumers = await queueListenerService.StartQueueListenersAsync(cts.Token);
+
+	//	app.Lifetime.ApplicationStopping.Register(() =>
+	//	{
+	//		foreach (var listener in consumers)
+	//		{
+	//			listener.StopListening();
+	//		}
+	//	});
+	//}
+
+	await app.RunAsync();
 }
 catch (Exception ex)
 {

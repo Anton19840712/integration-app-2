@@ -1,6 +1,4 @@
-﻿using servers_api.models.response;
-
-namespace servers_api.main.facades
+﻿namespace servers_api.main.facades
 {
 	public interface IQueueFacade
 	{

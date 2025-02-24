@@ -52,9 +52,9 @@ public class IntegrationController : ControllerBase
 			// 3. Создаем событие для OutboxMessage
 			var outboxMessage = new OutboxMessage
 			{
+				InQueue = parsedModel.InQueueName,
 				OutQueue = parsedModel.OutQueueName,
 				ModelType = "teaching",
-				InQueue = parsedModel.InQueueName,
 				Payload = parsedModel.IncomingModel,
 				IsProcessed = false
 			};

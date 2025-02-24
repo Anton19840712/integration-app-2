@@ -112,9 +112,13 @@ namespace BPMIntegration.Services.Background
 						{
 							cancellationToken.ThrowIfCancellationRequested();
 
+							// 1 публикуем сообщение:
 							await messagePublisher.PublishAsync(message.OutQueue, message, cancellationToken);
 
+							// 2 обновляем в памяти, что оно IsProcessed:
 							var update = Builders<OutboxMessage>.Update.Set(m => m.IsProcessed, true);
+
+							// 3 сохраняем обновление в базе:
 							await collection.UpdateOneAsync(Builders<OutboxMessage>.Filter.Eq(m => m.Id, message.Id), update);
 
 							_logger.LogInformation($"Сообщение outbox {message.Id} отправлено в очередь {message.OutQueue}.");
