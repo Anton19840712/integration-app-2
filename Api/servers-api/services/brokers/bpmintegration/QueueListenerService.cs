@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using servers_api.repositories;
+using servers_api.services.brokers.bpmintegration;
 
 public class QueueListenerService
 {

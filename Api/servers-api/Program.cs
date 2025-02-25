@@ -1,7 +1,9 @@
+using api.servers_api.middleware;
 using Serilog;
 using servers_api.api.minimalapi;
 using servers_api.middleware;
 using servers_api.repositories;
+using servers_api.services.brokers.bpmintegration;
 
 Console.Title = "integration api";
 

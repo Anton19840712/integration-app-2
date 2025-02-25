@@ -14,7 +14,7 @@ public static class OutboxConfiguration
 
 		// Регистрируем как IHostedService для фонового выполнения
 		services.AddHostedService<OutboxMongoBackgroundService>();
-		services.AddSingleton<IOutboxRepository, MongoOutboxRepository>();
+		services.AddSingleton<IOutboxRepository, OutboxRepository>();
 
 		Log.Information("OutboxProcessor зарегистрирован.");
 		return services;

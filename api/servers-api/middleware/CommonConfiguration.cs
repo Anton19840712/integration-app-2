@@ -12,7 +12,6 @@ static class CommonConfiguration
 		Log.Information("Регистрация базовых сервисов...");
 
 		services.AddCors();
-		services.AddHostedService<ListenerIntegrationBackgroundService>();
 
 		Log.Information("Базовые сервисы зарегистрированы.");
 

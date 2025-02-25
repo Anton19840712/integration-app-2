@@ -1,8 +1,10 @@
-﻿
-public interface IRabbitMqQueueListener
+﻿namespace servers_api.services.brokers.bpmintegration
 {
-	Task StartListeningAsync(
-		string queueOutName,
-		CancellationToken stoppingToken);
-	void StopListening();
+	public interface IRabbitMqQueueListener
+	{
+		Task StartListeningAsync(
+			string queueOutName,
+			CancellationToken stoppingToken);
+		void StopListening();
+	}
 }

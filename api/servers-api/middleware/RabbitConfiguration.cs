@@ -5,55 +5,58 @@ using servers_api.factory.tcp.queuesconnections;
 using servers_api.models.configurationsettings;
 using servers_api.services.brokers.bpmintegration;
 
-public static class RabbitConfiguration
+namespace api.servers_api.middleware
 {
-	/// <summary>
-	/// Регистрация RabbitMQ сервисов.
-	/// </summary>
-	public static IServiceCollection AddRabbitMqServices(this IServiceCollection services, IConfiguration configuration)
+
+	public static class RabbitConfiguration
 	{
-		Log.Information("Инициализация RabbitMQ...");
-
-		// Регистрация настроек RabbitMq в DI-контейнере
-		services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
-
-		// Добавление IConnectionFactory с использованием настроек RabbitMq
-		services.AddSingleton<IConnectionFactory>(provider =>
+		/// <summary>
+		/// Регистрация RabbitMQ сервисов.
+		/// </summary>
+		public static IServiceCollection AddRabbitMqServices(this IServiceCollection services, IConfiguration configuration)
 		{
-			var rabbitMqSettings = provider.GetRequiredService<IOptions<RabbitMqSettings>>()?.Value;
+			Log.Information("Инициализация RabbitMQ...");
 
-			if (rabbitMqSettings == null)
+			// Регистрация настроек RabbitMq в DI-контейнере
+			services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
+
+			// Добавление IConnectionFactory с использованием настроек RabbitMq
+			services.AddSingleton<IConnectionFactory>(provider =>
 			{
-				Log.Error("Конфигурация RabbitMQ отсутствует! Проверьте настройки.");
-				throw new InvalidOperationException("Конфигурация RabbitMQ отсутствует!");
-			}
+				var rabbitMqSettings = provider.GetRequiredService<IOptions<RabbitMqSettings>>()?.Value;
 
-			if (string.IsNullOrWhiteSpace(rabbitMqSettings.HostName) ||
-				rabbitMqSettings.Port == 0 ||
-				string.IsNullOrWhiteSpace(rabbitMqSettings.UserName) ||
-				string.IsNullOrWhiteSpace(rabbitMqSettings.Password))
-			{
-				Log.Error("Некорректные настройки RabbitMQ: {@Settings}", rabbitMqSettings);
-				throw new InvalidOperationException("Некорректные настройки RabbitMQ! Проверьте конфигурацию.");
-			}
+				if (rabbitMqSettings == null)
+				{
+					Log.Error("Конфигурация RabbitMQ отсутствует! Проверьте настройки.");
+					throw new InvalidOperationException("Конфигурация RabbitMQ отсутствует!");
+				}
 
-			var factory = new ConnectionFactory
-			{
-				HostName = rabbitMqSettings.HostName,
-				Port = rabbitMqSettings.Port,
-				UserName = rabbitMqSettings.UserName,
-				Password = rabbitMqSettings.Password
-			};
+				if (string.IsNullOrWhiteSpace(rabbitMqSettings.HostName) ||
+					rabbitMqSettings.Port == 0 ||
+					string.IsNullOrWhiteSpace(rabbitMqSettings.UserName) ||
+					string.IsNullOrWhiteSpace(rabbitMqSettings.Password))
+				{
+					Log.Error("Некорректные настройки RabbitMQ: {@Settings}", rabbitMqSettings);
+					throw new InvalidOperationException("Некорректные настройки RabbitMQ! Проверьте конфигурацию.");
+				}
 
-			Log.Information("RabbitMQ настроен: {Host}:{Port}", factory.HostName, factory.Port);
-			return factory;
-		});
+				var factory = new ConnectionFactory
+				{
+					HostName = rabbitMqSettings.HostName,
+					Port = rabbitMqSettings.Port,
+					UserName = rabbitMqSettings.UserName,
+					Password = rabbitMqSettings.Password
+				};
 
-		services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
-		services.AddSingleton<IRabbitMqService, RabbitMqService>();
-		services.AddTransient<IRabbitQueuesCreator, RabbitQueuesCreator>();
+				Log.Information("RabbitMQ настроен: {Host}:{Port}", factory.HostName, factory.Port);
+				return factory;
+			});
 
-		Log.Information("Сервисы, взаимодействующие с сетевой шиной, зарегистрированы.");
-		return services;
+			services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
+			services.AddSingleton<IRabbitMqService, RabbitMqService>();
+
+			Log.Information("Сервисы, взаимодействующие с сетевой шиной, зарегистрированы.");
+			return services;
+		}
 	}
 }

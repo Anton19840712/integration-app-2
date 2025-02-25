@@ -3,71 +3,74 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using servers_api.repositories;
 
-public class RabbitMqQueueListener : IRabbitMqQueueListener
+namespace servers_api.services.brokers.bpmintegration
 {
-	private readonly ILogger<RabbitMqQueueListener> _logger;
-	private readonly IConnectionFactory _connectionFactory;
-	private readonly QueuesRepository _queuesRepository;
-
-	private IConnection _connection;
-	private IModel _channel;
-	private string _queueOutName;
-
-	public RabbitMqQueueListener(
-		IConnectionFactory connectionFactory,
-		ILogger<RabbitMqQueueListener> logger,
-		QueuesRepository queuesRepositoryy)
+	public class RabbitMqQueueListener : IRabbitMqQueueListener
 	{
-		_connectionFactory = connectionFactory;
-		_logger = logger;
-		_queuesRepository = queuesRepositoryy;
-	}
+		private readonly ILogger<RabbitMqQueueListener> _logger;
+		private readonly IConnectionFactory _connectionFactory;
+		private readonly QueuesRepository _queuesRepository;
 
-	public async Task StartListeningAsync(
-		string queueOutName,
-		CancellationToken stoppingToken)
-	{
-		_queueOutName = queueOutName;
-		_connection = _connectionFactory.CreateConnection();
-		_channel = _connection.CreateModel();
+		private IConnection _connection;
+		private IModel _channel;
+		private string _queueOutName;
 
-		while (!QueueExists(_channel, _queueOutName))
+		public RabbitMqQueueListener(
+			IConnectionFactory connectionFactory,
+			ILogger<RabbitMqQueueListener> logger,
+			QueuesRepository queuesRepositoryy)
 		{
-			_logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", _queueOutName);
-			await Task.Delay(1000, stoppingToken);
+			_connectionFactory = connectionFactory;
+			_logger = logger;
+			_queuesRepository = queuesRepositoryy;
 		}
 
-		var consumer = new EventingBasicConsumer(_channel);
-		consumer.Received += async (model, ea) => await HandleMessageAsync(ea);
-
-		_channel.BasicConsume(queue: _queueOutName, autoAck: true, consumer: consumer);
-		_logger.LogInformation("Слушатель очереди {Queue} запущен", _queueOutName);
-	}
-
-	private bool QueueExists(IModel channel, string queueName)
-	{
-		try
+		public async Task StartListeningAsync(
+			string queueOutName,
+			CancellationToken stoppingToken)
 		{
-			channel.QueueDeclarePassive(queueName);
-			return true;
+			_queueOutName = queueOutName;
+			_connection = _connectionFactory.CreateConnection();
+			_channel = _connection.CreateModel();
+
+			while (!QueueExists(_channel, _queueOutName))
+			{
+				_logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", _queueOutName);
+				await Task.Delay(1000, stoppingToken);
+			}
+
+			var consumer = new EventingBasicConsumer(_channel);
+			consumer.Received += async (model, ea) => await HandleMessageAsync(ea);
+
+			_channel.BasicConsume(queue: _queueOutName, autoAck: true, consumer: consumer);
+			_logger.LogInformation("Слушатель очереди {Queue} запущен", _queueOutName);
 		}
-		catch
+
+		private bool QueueExists(IModel channel, string queueName)
 		{
-			return false;
+			try
+			{
+				channel.QueueDeclarePassive(queueName);
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
 		}
-	}
 
-	private async Task HandleMessageAsync(BasicDeliverEventArgs ea)
-	{
-		var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-		_logger.LogInformation("Получено сообщение из очереди {Queue}: {Message}", _queueOutName, message);
-		await Task.Delay(0);
-	}
+		private async Task HandleMessageAsync(BasicDeliverEventArgs ea)
+		{
+			var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+			_logger.LogInformation("Получено сообщение из очереди {Queue}: {Message}", _queueOutName, message);
+			await Task.Delay(0);
+		}
 
-	public void StopListening()
-	{
-		_channel?.Close();
-		_connection?.Close();
-		_logger.LogInformation("Слушатель {Queue} остановлен", _queueOutName);
+		public void StopListening()
+		{
+			_channel?.Close();
+			_connection?.Close();
+			_logger.LogInformation("Слушатель {Queue} остановлен", _queueOutName);
+		}
 	}
 }
