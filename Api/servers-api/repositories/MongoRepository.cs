@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace servers_api.repositories
@@ -10,7 +9,14 @@ namespace servers_api.repositories
 
 		public MongoRepository(IMongoDatabase database, string collectionName)
 		{
-			_collection = database.GetCollection<T>(collectionName);
+
+			if (string.IsNullOrWhiteSpace(collectionName))
+			{
+				throw new ArgumentException("Имя коллекции не может быть пустым", nameof(collectionName));
+			}
+
+			_collection = database.GetCollection<T>(collectionName)
+						 ?? throw new InvalidOperationException($"Коллекция {collectionName} не найдена.");
 		}
 
 		public async Task InsertAsync(T entity)

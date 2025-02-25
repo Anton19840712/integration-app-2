@@ -6,7 +6,8 @@ namespace servers_api.repositories
 {
 	public class OutboxRepository : MongoRepository<OutboxMessage>, IOutboxRepository
 	{
-		public OutboxRepository(IMongoDatabase database) : base(database, "outbox_messages") { }
+		public OutboxRepository(IMongoDatabase database, IConfiguration configuration)
+			: base(database, configuration["MongoDbSettings:Collections:OutboxCollection"] ?? "outbox_messages") { }
 
 		public async Task<List<OutboxMessage>> GetUnprocessedMessagesAsync()
 		{
