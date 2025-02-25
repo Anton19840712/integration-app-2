@@ -3,9 +3,8 @@ using RabbitMQ.Client;
 using Serilog;
 using servers_api.factory.tcp.queuesconnections;
 using servers_api.models.configurationsettings;
-using servers_api.services.brokers.bpmintegration;
 
-namespace api.servers_api.middleware
+namespace servers_api.middleware
 {
 
 	public static class RabbitConfiguration
@@ -52,7 +51,6 @@ namespace api.servers_api.middleware
 				return factory;
 			});
 
-			services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
 			services.AddSingleton<IRabbitMqService, RabbitMqService>();
 
 			Log.Information("Сервисы, взаимодействующие с сетевой шиной, зарегистрированы.");

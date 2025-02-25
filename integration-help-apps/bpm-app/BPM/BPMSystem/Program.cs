@@ -65,6 +65,8 @@ namespace BPMSystem
 			builder.Services.AddScoped<IJsonParsingService, JsonParsingService>();
 
 			builder.Services.AddHostedService<OutboxIntegrationTrackingService>();
+
+
 			builder.Services.AddSingleton<IMongoClient>(sp =>
 			{
 				var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
@@ -77,6 +79,8 @@ namespace BPMSystem
 				var databaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
 				return mongoClient.GetDatabase(databaseName);
 			});
+
+
 
 			builder.Services.AddSingleton(typeof(IMongoRepository<>), typeof(MongoRepository<>));
 			builder.Services.AddSingleton<IMongoRepository<IncidentEntity>, MongoRepository<IncidentEntity>>();
@@ -174,6 +178,8 @@ namespace BPMSystem
 			{
 				Log.Fatal(ex, "Ошибка при запуске слушателей очередей.");
 			}
+
+			await app.RunAsync();
 		}
 	}
 }

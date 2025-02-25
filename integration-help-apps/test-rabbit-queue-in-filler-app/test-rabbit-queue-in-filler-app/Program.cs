@@ -15,11 +15,18 @@ class Program
 		using var connection = factory.CreateConnection();
 		using var channel = connection.CreateModel();
 
+		//string[] queues =
+		//{
+		//	"corporation_in",
+		//	"epam_in",
+		//	"protei_in"
+		//};
+
 		string[] queues =
-		{
-			"corporation_in",
-			"epam_in",
-			"protei_in"
+{
+			"corporation_out",
+			"epam_out",
+			"protei_out"
 		};
 
 		foreach (var queue in queues)

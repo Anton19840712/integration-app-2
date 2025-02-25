@@ -1,13 +1,14 @@
-﻿using servers_api.repositories;
+﻿using servers_api.models.outbox;
+using servers_api.repositories;
 
 public class OutboxMongoBackgroundService : BackgroundService
 {
-	private readonly IOutboxRepository _outboxRepository;
+	private readonly MongoRepository<OutboxMessage> _outboxRepository;
 	private readonly IRabbitMqService _rabbitMqService;
 	private readonly ILogger<OutboxMongoBackgroundService> _logger;
 
 	public OutboxMongoBackgroundService(
-		IOutboxRepository outboxRepository,
+		MongoRepository<OutboxMessage> outboxRepository,
 		IRabbitMqService rabbitMqService,
 		ILogger<OutboxMongoBackgroundService> logger)
 	{
@@ -31,12 +32,16 @@ public class OutboxMongoBackgroundService : BackgroundService
 
 				foreach (var message in messages)
 				{
-					_logger.LogInformation($"Публикация сообщения: {message.Message}.");
+					_logger.LogInformation($"Публикация сообщения: {message.Payload}.");
 
-					await _rabbitMqService.PublishMessageAsync(message.InQueueName, message.RoutingKey, message.Message);
+					await _rabbitMqService.PublishMessageAsync(
+						message.InQueue,
+						message.RoutingKey,
+						message.Payload);
+
 					await _outboxRepository.MarkMessageAsProcessedAsync(message.Id);
 
-					_logger.LogInformation($"Обработано в Outbox: {message.Message}.");
+					_logger.LogInformation($"Обработано в Outbox: {message.Payload}.");
 				}
 			}
 			catch (Exception ex)

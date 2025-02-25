@@ -1,34 +1,65 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization.Attributes;
+using servers_api.enums;
 
 namespace servers_api.models.outbox;
 
 public class OutboxMessage
 {
+
 	[BsonId]
-	public ObjectId Id { get; set; }
+	[BsonRepresentation(BsonType.String)]
+	public string Id { get; set; }
 
-	[BsonElement("created_at")]
-	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+	[BsonElement("modelType")]
+	public string ModelType { get; set; }
 
-	[BsonElement("processed_at")]
-	public DateTime? ProcessedAt { get; set; } // Когда сообщение обработано
+	[BsonElement("eventType")]
+	public EventTypes EventType { get; set; }
 
-	[BsonElement("message")]
-	public string Message { get; set; }
+	[BsonElement("isProcessed")]
+	public bool IsProcessed { get; set; }
 
-	[BsonElement("source")]
-	public string Source { get; set; } // IP сервера
+	[BsonElement("processedAt")]
+	public DateTime ProcessedAt { get; set; }
 
-	[BsonElement("queue_in")]
-	public string InQueueName { get; set; } // Название очереди, в которую будет публиковаться данное сообщение
-											// после его сохранения в базу данных mongo db таблицу outbox
-	[BsonElement("queue_out")]
-	public string OutQueueName { get; set; } // Название очереди, в которую планируется, что будет публиковаться сообщение из bpm
+	[BsonElement("outQueue")]
+	public string OutQueue { get; set; }
+
+	[BsonElement("inQueue")]
+	public string InQueue { get; set; }
+
+	[BsonElement("payload")]
+	public string Payload { get; set; }
 
 	[BsonElement("routing_key")]
 	public string RoutingKey { get; set; }
 
-	[BsonElement("is_processed")]
-	public bool IsProcessed { get; set; } = false;
+	[BsonElement("createdAt")]
+	[BsonRepresentation(BsonType.DateTime)]
+	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+	// Принудительно сохраняем в UTC
+	[BsonElement("createdAtFormatted")]
+	[BsonIgnoreIfNull]
+	public string CreatedAtFormatted { get; set; }
+
+	// Принудительно сохраняем в UTC
+	[BsonElement("source")]
+	[BsonIgnoreIfNull]
+	public string Source { get; set; }
+
+	[BsonIgnore]
+	public string FormattedDate => CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+
+	public OutboxMessage()
+	{
+		CreatedAtFormatted = FormattedDate; // Заполняем перед сохранением
+	}
+
+	public string GetPayloadJson()
+	{
+		return Payload?.ToJson(new JsonWriterSettings()) ?? string.Empty;
+	}
 }

@@ -1,4 +1,6 @@
 ﻿using Serilog;
+using servers_api.models.entities;
+using servers_api.models.outbox;
 using servers_api.repositories;
 
 namespace servers_api.middleware;
@@ -14,7 +16,8 @@ public static class OutboxConfiguration
 
 		// Регистрируем как IHostedService для фонового выполнения
 		services.AddHostedService<OutboxMongoBackgroundService>();
-		services.AddSingleton<IOutboxRepository, OutboxRepository>();
+		services.AddSingleton<MongoRepository<OutboxMessage>>();
+		services.AddSingleton<MongoRepository<QueuesEntity>>();
 
 		Log.Information("OutboxProcessor зарегистрирован.");
 		return services;

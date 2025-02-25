@@ -2,8 +2,13 @@
 
 public class MongoDbSettings
 {
-	public string User { get; set; }
-	public string Password { get; set; }
 	public string ConnectionString { get; set; }
 	public string DatabaseName { get; set; }
+	public MongoDbCollections Collections { get; set; }
+}
+
+public class MongoDbCollections
+{
+	public string QueueCollection { get; set; }
+	public string OutboxCollection { get; set; }
 }

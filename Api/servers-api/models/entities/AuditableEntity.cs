@@ -1,5 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace servers_api.models.entities
 {
@@ -7,7 +7,7 @@ namespace servers_api.models.entities
 	{
 		[BsonId]
 		[BsonRepresentation(BsonType.ObjectId)]
-		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Id { get; set; }
 		public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAtUtc { get; set; }
 		public DateTime? DeletedAtUtc { get; set; }
@@ -24,6 +24,7 @@ namespace servers_api.models.entities
 		public string UserAgent { get; set; }
 		public string CorrelationId { get; set; }
 		public string ModelType { get; set; }
+		public bool IsProcessed { get; set; }
 
 		[BsonElement("createdAtFormatted")]
 		[BsonIgnoreIfNull]

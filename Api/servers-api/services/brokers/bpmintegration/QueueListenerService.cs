@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using servers_api.models.entities;
 using servers_api.repositories;
 using servers_api.services.brokers.bpmintegration;
 
@@ -6,12 +7,12 @@ public class QueueListenerService
 {
 	private readonly IConnectionFactory _connectionFactory;
 	private readonly ILoggerFactory _loggerFactory;
-	private readonly QueuesRepository _queuesRepository;
+	private readonly MongoRepository<QueuesEntity> _queuesRepository;
 
 	public QueueListenerService(
 		IConnectionFactory connectionFactory,
 		ILoggerFactory loggerFactory,
-		QueuesRepository queuesRepository)
+		MongoRepository<QueuesEntity> queuesRepository)
 	{
 		_connectionFactory = connectionFactory;
 		_loggerFactory = loggerFactory;
@@ -35,7 +36,7 @@ public class QueueListenerService
 			// оформить в виде иньекции:
 			var listener = new RabbitMqQueueListener(
 				_connectionFactory,
-				logger, _queuesRepository);
+				logger);
 			await listener.StartListeningAsync(queueOutName, cancellationToken);
 			consumers.Add(listener);
 		}
