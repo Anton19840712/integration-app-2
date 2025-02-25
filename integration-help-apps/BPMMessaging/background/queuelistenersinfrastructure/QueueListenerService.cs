@@ -1,50 +1,56 @@
 ﻿using BPMMessaging.models.dtos;
 using BPMMessaging.models.entities;
 using BPMMessaging.repository;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using System.Collections.Concurrent;
 
 public class QueueListenerService
 {
-	private readonly IConnectionFactory _connectionFactory;
-	private readonly ILoggerFactory _loggerFactory;
-	private readonly IMongoRepository<TeachingEntity> _teachingRepository;
-	private readonly IMongoRepository<IncidentEntity> _incidentRepository;
-	private readonly IMongoRepository<OutboxMessage> _outboxRepository;
+	private readonly IServiceProvider _serviceProvider;
+	private readonly ILogger<QueueListenerService> _logger;
 
-	public QueueListenerService(
-		IConnectionFactory connectionFactory,
-		ILoggerFactory loggerFactory,
-		IMongoRepository<TeachingEntity> teachingRepository,
-		IMongoRepository<IncidentEntity> incidentRepository,
-		IMongoRepository<OutboxMessage> outboxRepository)
+	public QueueListenerService(IServiceProvider serviceProvider, ILogger<QueueListenerService> logger)
 	{
-		_connectionFactory = connectionFactory;
-		_loggerFactory = loggerFactory;
-		_teachingRepository = teachingRepository;
-		_incidentRepository = incidentRepository;
-		_outboxRepository = outboxRepository;
+		_serviceProvider = serviceProvider;
+		_logger = logger;
 	}
 
 	public async Task<List<RabbitMqQueueListener>> StartQueueListenersAsync(CancellationToken cancellationToken)
 	{
-		var teachingEntities = await _teachingRepository.GetAllAsync();
-		var consumers = new List<RabbitMqQueueListener>();
+		using var scope = _serviceProvider.CreateScope();
+		var teachingRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<TeachingEntity>>();
 
-		foreach (var teachingEntity in teachingEntities)
+		var teachingEntities = await teachingRepository.GetAllAsync();
+		var consumers = new ConcurrentBag<RabbitMqQueueListener>();
+
+		await Parallel.ForEachAsync(teachingEntities, cancellationToken, async (teachingEntity, token) =>
 		{
-			var queueInName = teachingEntity.InQueueName;
-			var queueOutName = teachingEntity.OutQueueName;
+			try
+			{
+				using var innerScope = _serviceProvider.CreateScope();
+				var connectionFactory = innerScope.ServiceProvider.GetRequiredService<IConnectionFactory>();
+				var logger = innerScope.ServiceProvider.GetRequiredService<ILogger<RabbitMqQueueListener>>();
+				var incidentRepository = innerScope.ServiceProvider.GetRequiredService<IMongoRepository<IncidentEntity>>();
+				var outboxRepository = innerScope.ServiceProvider.GetRequiredService<IMongoRepository<OutboxMessage>>();
 
-			// оформить в виде иньекции:
-			var logger = _loggerFactory.CreateLogger<RabbitMqQueueListener>();
+				var listener = new RabbitMqQueueListener(
+					connectionFactory, logger, incidentRepository, outboxRepository
+				);
 
-			// оформить в виде иньекции:
-			var listener = new RabbitMqQueueListener(_connectionFactory, logger, _incidentRepository, _outboxRepository);
-			await listener.StartListeningAsync(queueInName, queueOutName, cancellationToken);
-			consumers.Add(listener);
-		}
+				await listener.StartListeningAsync(teachingEntity.InQueueName, teachingEntity.OutQueueName, token);
+				consumers.Add(listener);
 
-		return consumers;
+				_logger.LogInformation("Запущен слушатель для очередей {InQueue} -> {OutQueue}",
+					teachingEntity.InQueueName, teachingEntity.OutQueueName);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Ошибка при запуске слушателя для очереди {Queue}", teachingEntity.InQueueName);
+			}
+		});
+
+		return consumers.ToList();
 	}
 }
