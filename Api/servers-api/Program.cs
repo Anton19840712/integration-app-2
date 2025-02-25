@@ -40,8 +40,6 @@ try
 	services.AddOutboxServices();
 	services.AddValidationServices();
 
-	services.AddSingleton<QueueListenerService>();
-
 	services.AddTransient<IRabbitMqQueueListener, RabbitMqQueueListener>();
 
 	services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
