@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jwtconfiguration", "Gateway
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gateway ocelot", "gateway ocelot", "{8DB87FDF-C327-47A6-A416-86F8426CB75A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{8A3E0F38-D4A1-4DE1-A08A-31A4C3DC6F29}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hello", "hello", "{8A3E0F38-D4A1-4DE1-A08A-31A4C3DC6F29}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
