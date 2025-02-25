@@ -123,21 +123,57 @@ namespace BPMSystem
 
 			var cts = new CancellationTokenSource();
 
-			using (var scope = app.Services.CreateScope())
+			var queueListenerService = app.Services.GetRequiredService<QueueListenerService>();
+
+			try
 			{
-				var queueListenerService = scope.ServiceProvider.GetRequiredService<QueueListenerService>();
 				var consumers = await queueListenerService.StartQueueListenersAsync(cts.Token);
 
-				app.Lifetime.ApplicationStopping.Register(() =>
+				if (consumers.Any())
 				{
-					foreach (var listener in consumers)
-					{
-						listener.StopListening();
-					}
-				});
-			}
+					Log.Information("Успешно запущены {Count} обработчиков очередей.", consumers.Count);
 
-			await app.RunAsync();
+					// Регистрируем обработчик завершения приложения для корректного завершения работы слушателей
+					app.Lifetime.ApplicationStopping.Register(() =>
+					{
+						Log.Information("Остановка приложения: завершаем работу слушателей очередей...");
+						try
+						{
+							// Отправляем сигнал завершения потокам
+							cts.Cancel();
+
+							// Даём немного времени слушателям завершиться
+							Task.Delay(2000).Wait();
+
+							Parallel.ForEach(consumers, listener =>
+							{
+								try
+								{
+									listener.StopListening();
+								}
+								catch (Exception ex)
+								{
+									Log.Error(ex, "Ошибка при остановке слушателя очереди.");
+								}
+							});
+
+							Log.Information("Все слушатели очередей успешно остановлены.");
+						}
+						catch (Exception ex)
+						{
+							Log.Fatal(ex, "Критическая ошибка при остановке слушателей очередей.");
+						}
+					});
+				}
+				else
+				{
+					Log.Warning("Не обнаружено активных очередей для обработки. Проверьте данные в базе.");
+				}
+			}
+			catch (Exception ex)
+			{
+				Log.Fatal(ex, "Ошибка при запуске слушателей очередей.");
+			}
 		}
 	}
 }
