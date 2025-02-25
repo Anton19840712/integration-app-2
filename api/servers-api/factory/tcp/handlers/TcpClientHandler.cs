@@ -1,6 +1,5 @@
 ﻿using servers_api.models.internallayer.instance;
 using servers_api.models.outbox;
-using servers_api.repositories;
 using System.Net.Sockets;
 using System.Text;
 
@@ -9,7 +8,7 @@ namespace servers_api.factory.tcp.handlers;
 public class TcpClientHandler : ITcpClientHandler
 {
 	private readonly ILogger<TcpClientHandler> _logger;
-	private readonly MongoRepository<OutboxMessage> _outboxRepository;
+	private readonly IOutboxRepository _outboxRepository;
 
 	private TcpClient _client;
 	private CancellationTokenSource _cts;
@@ -23,9 +22,7 @@ public class TcpClientHandler : ITcpClientHandler
 	private string _outQueueName;
 	private string _protocolName;
 
-	public TcpClientHandler(
-		ILogger<TcpClientHandler> logger,
-		MongoRepository<OutboxMessage> outboxRepository)
+	public TcpClientHandler(ILogger<TcpClientHandler> logger, IOutboxRepository outboxRepository)
 	{
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 		_outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
@@ -131,10 +128,10 @@ public class TcpClientHandler : ITcpClientHandler
 				//сразу же приземляем полученное сообщение в нашу базу mongo
 				await _outboxRepository.SaveMessageAsync(new OutboxMessage
 				{
-					Payload = message,
+					Message = message,
 					Source = $"{_serverHost}:{_serverPort}",
-					InQueue = _inQueueName,
-					OutQueue = _outQueueName,
+					InQueueName = _inQueueName,
+					OutQueueName = _outQueueName,
 					RoutingKey = "routing_key_" + _protocolName
 
 				}).ConfigureAwait(false);

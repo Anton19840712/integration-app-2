@@ -1,51 +1,35 @@
-﻿using Microsoft.Extensions.Options;
-using MongoDB.Bson;
+﻿using System.Linq.Expressions;
 using MongoDB.Driver;
-using servers_api.models.configurationsettings;
-using servers_api.models.entities;
-using servers_api.models.outbox;
-using System.Linq.Expressions;
 
 namespace servers_api.repositories
 {
-	public class MongoRepository<T> : IMongoRepository<T> where T : class
+	public class MongoRepository<T> where T : class
 	{
-		private readonly IMongoCollection<T> _collection;
+		protected readonly IMongoCollection<T> _collection;
 
-		public MongoRepository(
-			IMongoClient mongoClient,
-			IOptions<MongoDbSettings> settings)
+		public MongoRepository(IMongoDatabase database, string collectionName)
 		{
-			var database = mongoClient.GetDatabase(settings.Value.DatabaseName);
-			string collectionName = GetCollectionName(typeof(T), settings.Value);
 			_collection = database.GetCollection<T>(collectionName);
 		}
 
-		private string GetCollectionName(Type entityType, MongoDbSettings settings)
+		public async Task InsertAsync(T entity)
 		{
-			return entityType.Name switch
-			{
-				nameof(OutboxMessage) => settings.Collections.OutboxCollection,
-				nameof(QueuesEntity) => settings.Collections.QueueCollection,
-				_ => throw new ArgumentException($"Неизвестный тип {entityType.Name}")
-			};
+			await _collection.InsertOneAsync(entity);
 		}
 
-		public async Task<T> GetByIdAsync(string id) =>
-			await _collection.Find(Builders<T>.Filter.Eq("_id", id)).FirstOrDefaultAsync();
-
-		public async Task<IEnumerable<T>> GetAllAsync() =>
-			await _collection.Find(_ => true).ToListAsync();
-
-		public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter) =>
-			await _collection.Find(filter).ToListAsync();
-
-		public async Task InsertAsync(T entity) =>
-			await _collection.InsertOneAsync(entity);
-
-		public async Task UpdateAsync(string id, T updatedEntity)
+		public async Task<List<T>> GetAllAsync()
 		{
-			var filter = Builders<T>.Filter.Eq("_id", ObjectId.Parse(id));
+			return await _collection.Find(_ => true).ToListAsync();
+		}
+
+		public async Task<T> GetByIdAsync(Guid id)
+		{
+			return await _collection.Find(Builders<T>.Filter.Eq("_id", id)).FirstOrDefaultAsync();
+		}
+
+		public async Task UpdateAsync(Guid id, T updatedEntity)
+		{
+			var filter = Builders<T>.Filter.Eq("_id", id);
 			var existingEntity = await _collection.Find(filter).FirstOrDefaultAsync();
 
 			if (existingEntity == null)
@@ -81,55 +65,12 @@ namespace servers_api.repositories
 			}
 		}
 
-		public async Task DeleteByIdAsync(string id) =>
+		public async Task DeleteAsync(Guid id)
+		{
 			await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", id));
-
-		public async Task<int> DeleteByTtlAsync(TimeSpan olderThan)
-		{
-			if (typeof(T) != typeof(OutboxMessage))
-			{
-				throw new InvalidOperationException("Метод поддерживает только OutboxMessage.");
-			}
-
-			var filter = Builders<OutboxMessage>.Filter.And(
-				Builders<OutboxMessage>.Filter.Lt(m => m.CreatedAt, DateTime.UtcNow - olderThan),
-				Builders<OutboxMessage>.Filter.Eq(m => m.IsProcessed, true)
-			);
-
-			var collection = _collection as IMongoCollection<OutboxMessage>;
-			var result = await collection.DeleteManyAsync(filter);
-
-			return (int)result.DeletedCount;
-		}
-		public async Task<List<T>> GetUnprocessedMessagesAsync()
-		{
-			var filter = Builders<T>.Filter.Eq("IsProcessed", false);
-			return await _collection.Find(filter).ToListAsync();
 		}
 
-		public async Task MarkMessageAsProcessedAsync(string messageId)
-		{
-			var update = Builders<T>.Update
-				.Set("IsProcessed", true)
-				.Set("ProcessedAt", DateTime.UtcNow);
-
-			await _collection.UpdateOneAsync(Builders<T>.Filter.Eq("Id", messageId), update);
-		}
-
-		public async Task<int> DeleteOldMessagesAsync(TimeSpan olderThan)
-		{
-			var filter = Builders<T>.Filter.And(
-				Builders<T>.Filter.Lt("CreatedAt", DateTime.UtcNow - olderThan),
-				Builders<T>.Filter.Eq("IsProcessed", true)
-			);
-
-			var result = await _collection.DeleteManyAsync(filter);
-			return (int)result.DeletedCount;
-		}
-
-		public async Task SaveMessageAsync(T message)
-		{
-			await _collection.InsertOneAsync(message);
-		}
+		public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter) =>
+			await _collection.Find(filter).ToListAsync();
 	}
 }

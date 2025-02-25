@@ -1,10 +1,6 @@
-using Microsoft.Extensions.Options;
-using MongoDB.Driver;
 using Serilog;
 using servers_api.api.minimalapi;
 using servers_api.middleware;
-using servers_api.models.configurationsettings;
-using servers_api.services.brokers.bpmintegration;
 
 Console.Title = "integration api";
 
@@ -39,23 +35,12 @@ try
 	services.AddAutoMapper(typeof(MappingProfile));
 	services.AddOutboxServices();
 	services.AddValidationServices();
+	services.AddSingleton<QueuesRepository>();
 
-	services.AddTransient<IRabbitMqQueueListener, RabbitMqQueueListener>();
+	services.AddTransient<RabbitMqQueueListener>();
+	services.AddSingleton<QueueListenerService>();
 
-	services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
-
-	builder.Services.AddSingleton<IMongoClient>(sp =>
-	{
-		var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
-		return new MongoClient(settings.ConnectionString);
-	});
-
-	builder.Services.AddSingleton<IMongoDatabase>(sp =>
-	{
-		var mongoClient = sp.GetRequiredService<IMongoClient>();
-		var databaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
-		return mongoClient.GetDatabase(databaseName);
-	});
+	services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
 
 
 	var app = builder.Build();
@@ -66,9 +51,27 @@ try
 	var factory = app.Services.GetRequiredService<ILoggerFactory>();
 
 	app.MapControllers();
-	app.MapCommonApiEndpoints(factory);
+	app.MapIntegrationMinimalApis(factory);
+	app.MapAdminMinimalApis(factory);
 
 	Log.Information("Динамический шлюз запущен и готов к эсплуатации.");
+	
+
+
+	// Удалить, если читаешь 3 раз:
+	//using (var scope = app.Services.CreateScope())
+	//{
+	//	var queueListenerService = scope.ServiceProvider.GetRequiredService<QueueListenerService>();
+	//	var consumers = await queueListenerService.StartQueueListenersAsync(cts.Token);
+
+	//	app.Lifetime.ApplicationStopping.Register(() =>
+	//	{
+	//		foreach (var listener in consumers)
+	//		{
+	//			listener.StopListening();
+	//		}
+	//	});
+	//}
 
 	await app.RunAsync();
 }

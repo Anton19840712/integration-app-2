@@ -2,7 +2,6 @@
 using servers_api.main.facades;
 using servers_api.models.entities;
 using servers_api.models.response;
-using servers_api.repositories;
 
 namespace servers_api.main.services;
 
@@ -11,7 +10,7 @@ namespace servers_api.main.services;
 /// всей инфраструктуры динамического шлюза под отдельную организацию.
 /// </summary>
 public class TeachIntegrationService(
-	MongoRepository<QueuesEntity> queuesRepository,
+	QueuesRepository queuesRepository,
 	IIntegrationFacade integrationFacade,
 	ILogger<TeachIntegrationService> logger) : ITeachIntegrationService
 {
@@ -25,50 +24,55 @@ public class TeachIntegrationService(
 		{
 			//1
 			logger.LogInformation("Выполняется ParseJsonAsync.");
-			var parsedCombinedModel = await integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
+			var parsedModel = await integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
 
-			//2 логика работы с коллекцией базы данных: 
-			//если модель с такими названиями очередей существует:
-			var existingQueueEntityModel = (await queuesRepository.FindAsync(x =>
-				x.InQueueName == parsedCombinedModel.InQueueName &&
-				x.OutQueueName == parsedCombinedModel.OutQueueName)).FirstOrDefault();
-
+			//2
 			logger.LogInformation("Выполняется сохранение в базу очередей.");
-			var incomingQueuesEntitySave = new QueuesEntity()
-			{
-				InQueueName = parsedCombinedModel.InQueueName,
-				OutQueueName = parsedCombinedModel.OutQueueName
+			var modelQueueSave = new QueuesEntity() { 
+				InQueueName = parsedModel.InQueueName,
+				OutQueueName = parsedModel.OutQueueName
 			};
 
-			if (existingQueueEntityModel != null)
+
+			var existingModel = (await queuesRepository.FindAsync(x =>
+				x.InQueueName == parsedModel.InQueueName &&
+				x.OutQueueName == parsedModel.OutQueueName)).FirstOrDefault();
+
+			if (existingModel != null)
 			{
-				await queuesRepository.UpdateAsync(
-					existingQueueEntityModel.Id,
-					incomingQueuesEntitySave);
+				parsedModel.Id = existingModel.Id; // Сохраняем ID:
+				await queuesRepository.UpdateAsync(existingModel.Id, modelQueueSave);
 			}
 			else
 			{
-				// Если модели нет — вставляем эту новую:
-				await queuesRepository.InsertAsync(incomingQueuesEntitySave);
+				// Если модели нет — вставляем новую:
+				await queuesRepository.InsertAsync(modelQueueSave);
 			}
+			await queuesRepository.InsertAsync(modelQueueSave);
 
 			//3
 			logger.LogInformation("Выполняется ExecuteTeachAsync.");
 			var apiStatus = await integrationFacade.TeachBpmAsync(
-				parsedCombinedModel,
+				parsedModel,
 				stoppingToken);
 
 			//4
-			logger.LogInformation("Запускаем слушателя в фоне для очереди: {Queue}.", parsedCombinedModel.OutQueueName);
+			logger.LogInformation("Запускаем слушателя в фоне для очереди: {Queue}.", parsedModel.OutQueueName);
 
+			var elements = await queuesRepository.GetAllAsync();
+
+			foreach (var element in elements)
+			{
+				// TODO: use parallel foreach:
 				await integrationFacade.StartListeningAsync(
-				parsedCombinedModel.OutQueueName,
+				element.OutQueueName,
 				stoppingToken);
+			}
 
 			return [
 				apiStatus,
 				new ResponseIntegration {
-					Message = $"Cлушатель очeреди {parsedCombinedModel.OutQueueName} запустился.",
+					Message = $"Cлушатель очeреди {parsedModel.OutQueueName} запустился.",
 					Result = true
 				}
 			];
