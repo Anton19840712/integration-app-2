@@ -27,26 +27,27 @@ public class TeachIntegrationService(
 			logger.LogInformation("Выполняется ParseJsonAsync.");
 			var parsedModel = await integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
 
-			//2
+			//2 логика работы с коллекцией базы данных: 
 			logger.LogInformation("Выполняется сохранение в базу очередей.");
 			var modelQueueSave = new QueuesEntity() { 
 				InQueueName = parsedModel.InQueueName,
 				OutQueueName = parsedModel.OutQueueName
 			};
 
-
+			//если модель с такими названиями очередей существует:
 			var existingModel = (await queuesRepository.FindAsync(x =>
 				x.InQueueName == parsedModel.InQueueName &&
 				x.OutQueueName == parsedModel.OutQueueName)).FirstOrDefault();
 
 			if (existingModel != null)
 			{
-				parsedModel.Id = existingModel.Id; // Сохраняем ID:
+				//меняем ей Id и обновляем:
+				parsedModel.Id = existingModel.Id;
 				await queuesRepository.UpdateAsync(existingModel.Id, modelQueueSave);
 			}
 			else
 			{
-				// Если модели нет — вставляем новую:
+				// Если модели нет — вставляем эту новую:
 				await queuesRepository.InsertAsync(modelQueueSave);
 			}
 			await queuesRepository.InsertAsync(modelQueueSave);
@@ -59,8 +60,15 @@ public class TeachIntegrationService(
 
 			//4
 			logger.LogInformation("Запускаем слушателя в фоне для очереди: {Queue}.", parsedModel.OutQueueName);
-
 			var elements = await queuesRepository.GetAllAsync();
+
+			//для каждой очереди запускаем слушателя:
+			//эти логику нужно таким же образом использовать, когда ты будешь слушать данные из определенных очередей:
+			//когда будешь получать данные на сервер - однако, такое ощущение, что ты должен будешь заслушать только те данные, которые у тебя
+			//будут относиться к tcp - соединению? Или какая разница?
+			//по идее у тебя может быть создан очень умные лисенер.
+			//если на стороне бпм мы можем говорить про то, что у нас будет всеядный лисенер,
+			//то на стороне интеграционного динамического шлюза, наверное, это будет какой-то выборочный слушатель?
 
 			foreach (var element in elements)
 			{

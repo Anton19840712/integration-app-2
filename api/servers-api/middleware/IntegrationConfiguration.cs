@@ -1,6 +1,5 @@
 ﻿using Serilog;
 using servers_api.main.services;
-using servers_api.services.connectors;
 using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
@@ -21,6 +20,7 @@ static class IntegrationConfiguration
 
 		services.AddTransient<ITeachIntegrationService, TeachIntegrationService>();
 		services.AddTransient<ITeachService, TeachService>();
+		services.AddTransient<ITeachHandler, TeachHandler>();
 
 		services.AddTransient<IStartNodeService, StartNodeService>();
 

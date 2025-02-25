@@ -74,7 +74,7 @@ public class RabbitMqQueueListener
 		var message = Encoding.UTF8.GetString(ea.Body.ToArray());
 		_logger.LogInformation("Получено сообщение из очереди {Queue}: {Message}", _queueInName, message);
 
-		// Сохраняем в MongoDB как инцидент
+		// Сохраняем в MongoDB как incident:
 		var incident = new IncidentEntity
 		{
 			ModelType = "incident",
@@ -85,7 +85,7 @@ public class RabbitMqQueueListener
 		await _incidentRepository.InsertAsync(incident);
 		_logger.LogInformation("Сообщение сохранено в таблицу инцидентов");
 
-		// Сохраняем в Outbox
+		// Сохраняем данные так же в outbox:
 		var outboxMessage = new OutboxMessage
 		{
 			ModelType = "outbox",
