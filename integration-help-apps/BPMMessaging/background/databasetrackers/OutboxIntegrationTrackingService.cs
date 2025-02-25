@@ -106,7 +106,7 @@ namespace BPMIntegration.Services.Background
 
 					if (outboxMessages.Any())
 					{
-						_logger.LogInformation($"Найдено {outboxMessages.Count} сообщений для обработки.");
+						_logger.LogInformation($"В таблице outbox-message найдено сообщений: {outboxMessages.Count} для обработки.");
 
 						foreach (var message in outboxMessages)
 						{
@@ -121,7 +121,7 @@ namespace BPMIntegration.Services.Background
 							// 3 сохраняем обновление в базе:
 							await collection.UpdateOneAsync(Builders<OutboxMessage>.Filter.Eq(m => m.Id, message.Id), update);
 
-							_logger.LogInformation($"Сообщение outbox {message.Id} отправлено в очередь {message.OutQueue}.");
+							_logger.LogInformation($"Сообщение outbox с id {message.Id} отправлено в очередь {message.OutQueue}.");
 						}
 
 						_logger.LogInformation("Все сообщения успешно обработаны.");
