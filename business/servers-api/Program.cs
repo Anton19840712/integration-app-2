@@ -4,6 +4,9 @@ using Serilog;
 using servers_api.api.minimalapi;
 using servers_api.middleware;
 using servers_api.models.configurationsettings;
+using servers_api.models.entities;
+using servers_api.models.outbox;
+using servers_api.repositories;
 using servers_api.services.brokers.bpmintegration;
 
 Console.Title = "integration api";
@@ -43,7 +46,8 @@ try
 	services.AddTransient<IRabbitMqQueueListener, RabbitMqQueueListener>();
 
 	services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
-
+	builder.Services.AddTransient<IMongoRepository<QueuesEntity>, MongoRepository<QueuesEntity>>();
+	builder.Services.AddTransient<IMongoRepository<OutboxMessage>, MongoRepository<OutboxMessage>>();
 	builder.Services.AddSingleton<IMongoClient>(sp =>
 	{
 		var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
