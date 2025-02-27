@@ -39,7 +39,11 @@ public class QueueListenerService
 					connectionFactory, logger, incidentRepository, outboxRepository
 				);
 
-				await listener.StartListeningAsync(teachingEntity.InQueueName, teachingEntity.OutQueueName, token);
+				// создаем лисенеры согласно существующим в базе данных таблицы teaching очередям:
+				await listener.StartListeningAsync(
+					teachingEntity.InQueueName,
+					teachingEntity.OutQueueName,
+					token);
 				consumers.Add(listener);
 
 				_logger.LogInformation("Запущен слушатель для очередей {InQueue} -> {OutQueue}",

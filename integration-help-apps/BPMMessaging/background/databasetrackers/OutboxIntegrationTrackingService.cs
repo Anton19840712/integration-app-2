@@ -36,7 +36,7 @@ namespace BPMIntegration.Services.Background
 				_logger.LogInformation("OutboxProcessorService запущен.");
 
 				// Параллельно запускаем фоновую очистку старых сообщений
-				//_ = Task.Run(() => CleanupOldMessagesAsync(cancellationToken), cancellationToken);
+				// _ = Task.Run(() => CleanupOldMessagesAsync(cancellationToken), cancellationToken);
 
 				_ = Task.Run(async () =>
 				{
