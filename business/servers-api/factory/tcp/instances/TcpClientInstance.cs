@@ -1,5 +1,6 @@
 ﻿using servers_api.enums;
 using servers_api.factory.abstractions;
+using servers_api.models.entities;
 using servers_api.models.internallayer.instance;
 using servers_api.models.outbox;
 using servers_api.models.response;
@@ -11,18 +12,24 @@ public class TcpClientInstance : IUpClient
 {
 	private readonly ILogger<TcpClientInstance> _logger;
 	private readonly IMongoRepository<OutboxMessage> _outboxRepository;
+	private readonly IMongoRepository<IncidentEntity> _incidentRepository; // Репозиторий для инцидентов
+	private readonly IMongoRepository<QueuesEntity> _queueRepository;
+
 	private string _serverHost;
 	private int _serverPort;
 	private TcpClient _tcpClient;
 	private NetworkStream _networkStream;
 	private int _reconnectAttempts;
 	private const int MaxReconnectAttempts = 5;
-	private List<string> _messageQueue = new List<string>(); // Промежуточная коллекция для сообщений
 
-	public TcpClientInstance(ILogger<TcpClientInstance> logger, IMongoRepository<OutboxMessage> outboxRepository)
+	public TcpClientInstance(
+		ILogger<TcpClientInstance> logger,
+		IMongoRepository<OutboxMessage> outboxRepository,
+		IMongoRepository<IncidentEntity> incidentRepository)
 	{
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 		_outboxRepository = outboxRepository ?? throw new ArgumentNullException(nameof(outboxRepository));
+		_incidentRepository = incidentRepository ?? throw new ArgumentNullException(nameof(incidentRepository));
 		_serverHost = "127.0.0.1";
 		_serverPort = 6254;
 		_reconnectAttempts = 0;
@@ -111,14 +118,8 @@ public class TcpClientInstance : IUpClient
 				var message = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 				_logger.LogInformation("Обработка полученного сообщения: {Message}", message);
 
-				// Добавляем сообщение в промежуточную коллекцию
-				lock (_messageQueue)
-				{
-					_messageQueue.Add(message);
-				}
-
-				// Обрабатываем и логируем сообщения
-				ProcessMessages(instanceModelQueueInName, instanceModelQueueOutName);
+				// Сразу обрабатываем и сохраняем сообщение
+				await ProcessMessagesAsync(message, instanceModelQueueInName, instanceModelQueueOutName);
 
 				Array.Clear(buffer, 0, buffer.Length);
 			}
@@ -134,47 +135,50 @@ public class TcpClientInstance : IUpClient
 		_logger.LogInformation("Соединение завершено.");
 	}
 
-	private async void ProcessMessages(string instanceModelQueueInName, string instanceModelQueueOutName)
+	private async Task ProcessMessagesAsync(string message, string instanceModelQueueInName, string instanceModelQueueOutName)
 	{
-		List<string> messagesToProcess;
-
-		// Извлекаем и обрабатываем сообщения из промежуточной коллекции
-		lock (_messageQueue)
+		try
 		{
-			messagesToProcess = new List<string>(_messageQueue);
-			_messageQueue.Clear();
+			_logger.LogInformation("Логирование сообщения: {Message}", message);
+
+			// Сохранение полученного сообщения в Outbox
+			var outboxMessage = new OutboxMessage
+			{
+				Id = Guid.NewGuid().ToString(),
+				ModelType = ModelType.Outbox,
+				EventType = EventTypes.Received,
+				IsProcessed = false,
+				ProcessedAt = DateTime.Now,
+				InQueue = instanceModelQueueInName,
+				OutQueue = instanceModelQueueOutName,
+				Payload = message,
+				RoutingKey = "routing_key_tcp",
+				CreatedAt = DateTime.UtcNow,
+				CreatedAtFormatted = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+				Source = $"tcp-client-instance based on host: {_serverHost} and port {_serverPort}"
+			};
+
+			await _outboxRepository.SaveMessageAsync(outboxMessage);
+
+			// Сохранение инцидента в базу данных
+			var incidentEntity = new IncidentEntity
+			{
+				Payload = message,
+				CreatedAtUtc = DateTime.UtcNow,
+				CreatedBy = "tcp-client-instance",
+				IpAddress = "127.0.0.1",
+				UserAgent = "tcp-client-instance",
+				CorrelationId = Guid.NewGuid().ToString(),
+				ModelType = "Incident",
+				IsProcessed = false
+			};
+
+			await _incidentRepository.SaveMessageAsync(incidentEntity);
 		}
-
-		foreach (var message in messagesToProcess)
+		catch (Exception ex)
 		{
-			try
-			{
-				_logger.LogInformation("Логирование сообщения: {Message}", message);
-
-				// Сохранение полученного сообщения в базу данных
-				var outboxMessage = new OutboxMessage
-				{
-					Id = Guid.NewGuid().ToString(),
-					ModelType = "incident",
-					EventType = EventTypes.Received,
-					IsProcessed = false,
-					ProcessedAt = DateTime.Now,
-					InQueue = instanceModelQueueInName,
-					OutQueue = instanceModelQueueOutName,
-					Payload = message,
-					RoutingKey = "routing_key_tcp",
-					CreatedAt = DateTime.UtcNow,
-					CreatedAtFormatted = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-					Source = $"tcp-client-instance hosted on host: {_serverHost} and port {_serverPort}"
-				};
-
-				await _outboxRepository.SaveMessageAsync(outboxMessage); // Сохранение в MongoDB
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError("Ошибка при сохранении сообщения в базу данных.");
-				_logger.LogError(ex.Message);
-			}
+			_logger.LogError("Ошибка при сохранении сообщения в базу данных.");
+			_logger.LogError(ex.Message);
 		}
 	}
 }

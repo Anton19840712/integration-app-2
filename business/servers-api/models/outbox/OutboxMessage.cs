@@ -13,7 +13,7 @@ public class OutboxMessage
 	public string Id { get; set; }
 
 	[BsonElement("modelType")]
-	public string ModelType { get; set; }
+	public ModelType ModelType { get; set; }
 
 	[BsonElement("eventType")]
 	public EventTypes EventType { get; set; }

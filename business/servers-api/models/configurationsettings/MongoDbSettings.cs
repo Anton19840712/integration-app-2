@@ -11,4 +11,5 @@ public class MongoDbCollections
 {
 	public string QueueCollection { get; set; }
 	public string OutboxCollection { get; set; }
+	public string IncidentCollection { get; set; }
 }

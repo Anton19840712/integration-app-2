@@ -27,6 +27,7 @@ namespace servers_api.repositories
 			{
 				nameof(OutboxMessage) => settings.Collections.OutboxCollection,
 				nameof(QueuesEntity) => settings.Collections.QueueCollection,
+				nameof(IncidentEntity) => settings.Collections.IncidentCollection,
 				_ => throw new ArgumentException($"Неизвестный тип {entityType.Name}")
 			};
 		}

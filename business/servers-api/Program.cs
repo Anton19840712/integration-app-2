@@ -7,6 +7,7 @@ using servers_api.models.configurationsettings;
 using servers_api.models.entities;
 using servers_api.models.outbox;
 using servers_api.repositories;
+using servers_api.services;
 using servers_api.services.brokers.bpmintegration;
 
 Console.Title = "integration api";
@@ -25,8 +26,6 @@ builder.Host.UseSerilog((ctx, cfg) =>
 
 try
 {
-	//GateConfiguration.ConfigureDynamicGate(args, builder);
-
 	var services = builder.Services;
 	var configuration = builder.Configuration;
 
@@ -43,11 +42,22 @@ try
 	services.AddOutboxServices();
 	services.AddValidationServices();
 
-	services.AddTransient<IRabbitMqQueueListener, RabbitMqQueueListener>();
+	services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
 
 	services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
+
+	// Разбор зависимостей для репозиториев:
 	builder.Services.AddTransient<IMongoRepository<QueuesEntity>, MongoRepository<QueuesEntity>>();
 	builder.Services.AddTransient<IMongoRepository<OutboxMessage>, MongoRepository<OutboxMessage>>();
+	builder.Services.AddTransient<IMongoRepository<IncidentEntity>, MongoRepository<IncidentEntity>>();
+
+	services.AddSingleton<MongoRepository<OutboxMessage>>();
+	services.AddSingleton<MongoRepository<QueuesEntity>>();
+	services.AddSingleton<MongoRepository<IncidentEntity>>();
+
+	services.AddHostedService<QueueListenerBackgroundService>();
+	//builder.Services.AddScoped<IHostedService, QueueListenerBackgroundService>();
+
 	builder.Services.AddSingleton<IMongoClient>(sp =>
 	{
 		var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
@@ -61,7 +71,6 @@ try
 		return mongoClient.GetDatabase(databaseName);
 	});
 
-
 	var app = builder.Build();
 
 	app.UseSerilogRequestLogging();
@@ -73,7 +82,44 @@ try
 	app.MapIntegrationMinimalApis(factory);
 	app.MapAdminMinimalApis(factory);
 
-	Log.Information("Динамический шлюз запущен и готов к эсплуатации.");
+	Log.Information("Динамический шлюз запущен и готов к эксплуатации.");
+
+	//using (var scope = app.Services.CreateScope())
+	//{
+	//	var integrationFacade = scope.ServiceProvider.GetRequiredService<IIntegrationFacade>();
+	//	var queuesRepository = scope.ServiceProvider.GetRequiredService<MongoRepository<QueuesEntity>>();
+
+	//	var logger = factory.CreateLogger("AdminEndpoints");
+
+	//	// Логика старта слушателей
+	//	try
+	//	{
+	//		logger.LogInformation("Dumping messages from all queues.");
+
+	//		// Получаем названия всех очередей из репозитория:
+	//		var elements = await queuesRepository.GetAllAsync();
+
+	//		foreach (var element in elements)
+	//		{
+	//			try
+	//			{
+	//				// Для каждой очереди запускаем слушателя:
+	//				await integrationFacade.StartListeningAsync(element.OutQueueName, cts.Token);
+	//			}
+	//			catch (Exception ex)
+	//			{
+	//				// Логируем ошибку для каждой очереди отдельно, но продолжаем обработку других:
+	//				logger.LogError(ex, "Error retrieving messages from queue: {QueueName}", element.OutQueueName);
+	//			}
+	//		}
+
+	//		logger.LogInformation("Процесс получения сообщений из очередей завершен.");
+	//	}
+	//	catch (Exception ex)
+	//	{
+	//		logger.LogError(ex, "Error while getting messages from queues");
+	//	}
+	//}
 
 	await app.RunAsync();
 }
