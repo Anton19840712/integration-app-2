@@ -17,7 +17,6 @@ namespace servers_api.main.facades
 			CombinedModel model,
 			CancellationToken stoppingToken);
 		Task<ResponseIntegration> ConfigureNodeAsync(
-
 			CombinedModel model,
 			CancellationToken stoppingToken);
 	}
