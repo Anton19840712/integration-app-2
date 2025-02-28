@@ -18,11 +18,12 @@ var cts = new CancellationTokenSource();
 // Настройка логирования
 builder.Host.UseSerilog((ctx, cfg) =>
 {
-	cfg.WriteTo
-		.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-		.Enrich
-		.FromLogContext();
+cfg.MinimumLevel.Information()
+   .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+   .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+   .Enrich.FromLogContext();
 });
+
 
 try
 {
