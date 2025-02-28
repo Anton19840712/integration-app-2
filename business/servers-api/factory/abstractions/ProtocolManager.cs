@@ -47,7 +47,8 @@ public class ProtocolManager : IProtocolManager
 			clientModel.Protocol, serverHost, serverPort);
 
 		using var cts = new CancellationTokenSource(clientModel.ClientConnectionSettings.ConnectionTimeoutMs);
-		return await client.ConnectToServerAsync(clientModel, serverHost, serverPort, cts.Token);
+		var result = await client.ConnectToServerAsync(clientModel, serverHost, serverPort, cts.Token);
+		return result;
 	}
 
 	private async Task<ResponseIntegration> ConfigureServerAsync(ServerInstanceModel serverModel)
