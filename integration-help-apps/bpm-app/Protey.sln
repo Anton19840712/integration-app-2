@@ -9,7 +9,7 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BPMEngine", "BPM\BPMEngine\BPMEngine.csproj", "{D6AC7ACC-9480-4F38-A72C-B012A9D90FD7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BPMMessaging", "..\BPMMessaging\BPMMessaging.csproj", "{A5283837-56A8-42A7-A109-774CAADD930E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BPMMessaging", "BPMMessaging\BPMMessaging.csproj", "{A5283837-56A8-42A7-A109-774CAADD930E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

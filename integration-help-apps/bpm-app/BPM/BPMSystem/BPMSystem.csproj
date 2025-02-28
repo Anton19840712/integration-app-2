@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\BPMMessaging\BPMMessaging.csproj" />
+    <ProjectReference Include="..\..\BPMMessaging\BPMMessaging.csproj" />
     <ProjectReference Include="..\BPMEngine\BPMEngine.csproj" />
   </ItemGroup>
 
