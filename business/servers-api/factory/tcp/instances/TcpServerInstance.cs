@@ -41,7 +41,7 @@ public class TcpServerInstance : IUpServer
 		try
 		{
 
-			//  к нам будет подключаться client:
+			//  к нам будет подключаться внешний client:
 			listener.Start();
 			_logger.LogInformation("TCP сервер запущен на {Host}:{Port}", instanceModel.Host, instanceModel.Port);
 
@@ -55,7 +55,10 @@ public class TcpServerInstance : IUpServer
 					_logger.LogInformation("Клиент подключился.");
 
 					// TODO параметр модели нужно пробросить при настройке динамического шлюза, а не хардкодить:
-					_ = Task.Run(() => _messageSender.SendMessagesToClientAsync(client, instanceModel.OutQueueName, cancellationToken), cancellationToken);
+					_ = Task.Run(() => _messageSender.SendMessagesToClientAsync(
+						client,
+						instanceModel.OutQueueName,
+						cancellationToken), cancellationToken);
 
 					return new ResponseIntegration
 					{

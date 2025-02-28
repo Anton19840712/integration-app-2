@@ -66,7 +66,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 				int deletedCount = await _outboxRepository.DeleteOldMessagesAsync(TimeSpan.FromSeconds(ttlDifference));
 				if (deletedCount!=0)
 				{
-					_logger.LogInformation($"OutboxMongoBackgroundService: yдалено {deletedCount} старых сообщений из базы ProtocolEvenrtsDB, коллекции outbox_messages.");
+					_logger.LogInformation($"OutboxMongoBackgroundService: yдалено {deletedCount} старых сообщений из базы GatewayDB, коллекции outbox_messages.");
 				}
 			}
 			catch (Exception ex)

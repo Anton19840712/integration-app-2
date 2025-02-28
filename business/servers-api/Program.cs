@@ -7,7 +7,6 @@ using servers_api.models.configurationsettings;
 using servers_api.models.entities;
 using servers_api.models.outbox;
 using servers_api.repositories;
-using servers_api.services;
 using servers_api.services.brokers.bpmintegration;
 
 Console.Title = "integration api";
@@ -23,7 +22,6 @@ cfg.MinimumLevel.Information()
    .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
    .Enrich.FromLogContext();
 });
-
 
 try
 {
@@ -56,7 +54,7 @@ try
 	services.AddSingleton<MongoRepository<QueuesEntity>>();
 	services.AddSingleton<MongoRepository<IncidentEntity>>();
 
-	//services.AddHostedService<QueueListenerBackgroundService>();
+	services.AddHostedService<QueueListenerBackgroundService>();
 	//builder.Services.AddScoped<IHostedService, QueueListenerBackgroundService>();
 
 	builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -83,44 +81,7 @@ try
 	app.MapIntegrationMinimalApi(factory);
 	app.MapAdminMinimalApi(factory);
 
-	Log.Information("Динамический шлюз запущен и готов к эксплуатации.");
-
-	//using (var scope = app.Services.CreateScope())
-	//{
-	//	var integrationFacade = scope.ServiceProvider.GetRequiredService<IIntegrationFacade>();
-	//	var queuesRepository = scope.ServiceProvider.GetRequiredService<MongoRepository<QueuesEntity>>();
-
-	//	var logger = factory.CreateLogger("AdminEndpoints");
-
-	//	// Логика старта слушателей
-	//	try
-	//	{
-	//		logger.LogInformation("Dumping messages from all queues.");
-
-	//		// Получаем названия всех очередей из репозитория:
-	//		var elements = await queuesRepository.GetAllAsync();
-
-	//		foreach (var element in elements)
-	//		{
-	//			try
-	//			{
-	//				// Для каждой очереди запускаем слушателя:
-	//				await integrationFacade.StartListeningAsync(element.OutQueueName, cts.Token);
-	//			}
-	//			catch (Exception ex)
-	//			{
-	//				// Логируем ошибку для каждой очереди отдельно, но продолжаем обработку других:
-	//				logger.LogError(ex, "Error retrieving messages from queue: {QueueName}", element.OutQueueName);
-	//			}
-	//		}
-
-	//		logger.LogInformation("Процесс получения сообщений из очередей завершен.");
-	//	}
-	//	catch (Exception ex)
-	//	{
-	//		logger.LogError(ex, "Error while getting messages from queues");
-	//	}
-	//}
+	Log.Information("Динамический шлюз запущен и готов к эксплуатации.");	
 
 	await app.RunAsync();
 }
