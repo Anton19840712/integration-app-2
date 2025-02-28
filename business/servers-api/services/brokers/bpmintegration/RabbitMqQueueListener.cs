@@ -8,10 +8,10 @@ namespace servers_api.services.brokers.bpmintegration
 	{
 		private readonly ILogger<RabbitMqQueueListener> _logger;
 		private readonly IConnectionFactory _connectionFactory;
+		private IConnection _connection;
+		private IModel _channel;
 
-		public RabbitMqQueueListener(
-			IConnectionFactory connectionFactory,
-			ILogger<RabbitMqQueueListener> logger)
+		public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger<RabbitMqQueueListener> logger)
 		{
 			_connectionFactory = connectionFactory;
 			_logger = logger;
@@ -19,44 +19,36 @@ namespace servers_api.services.brokers.bpmintegration
 
 		public async Task StartListeningAsync(string queueOutName, CancellationToken stoppingToken)
 		{
-			using var connection = _connectionFactory.CreateConnection();
-			using var channel = connection.CreateModel();
+			_connection = _connectionFactory.CreateConnection();
+			_channel = _connection.CreateModel();
 
-			while (!QueueExists(channel, queueOutName))
+			while (!QueueExists(_channel, queueOutName))
 			{
-				_logger.LogWarning("Очередь {Queue} еще не создана. Ожидание...", queueOutName);
+				_logger.LogWarning("Очередь {Queue} не найдена. Ожидание...", queueOutName);
 				await Task.Delay(1000, stoppingToken);
 			}
 
-			var messages = new List<string>();
-			var messageReceived = false; // Флаг, отслеживающий поступление сообщений
-
-			var consumer = new EventingBasicConsumer(channel);
-			consumer.Received += (model, ea) =>
+			var consumer = new EventingBasicConsumer(_channel);
+			consumer.Received += async (model, ea) =>
 			{
 				var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-				messages.Add(message);
-				messageReceived = true; // Устанавливаем флаг при получении сообщения
+				_logger.LogInformation("Получено сообщение из {Queue}: {Message}", queueOutName, message);
+
+				await ProcessMessageAsync(message, queueOutName);
 			};
 
-			_logger.LogInformation("Подключаемся к очереди {Queue}", queueOutName);
-			channel.BasicConsume(queue: queueOutName, autoAck: true, consumer: consumer);
+			_logger.LogInformation("Подключен к очереди {Queue}. Ожидание сообщений...", queueOutName);
+			_channel.BasicConsume(queue: queueOutName, autoAck: true, consumer: consumer);
 
-			await Task.Delay(5000, stoppingToken);
-
-			if (messages.Count > 0)
+			// Держим процесс активным, пока не получен сигнал отмены
+			try
 			{
-				foreach (var message in messages)
-				{
-					_logger.LogInformation("Получено сообщение: {Message}", message);
-				}
+				await Task.Delay(Timeout.Infinite, stoppingToken);
 			}
-			else
+			catch (TaskCanceledException)
 			{
-				_logger.LogWarning("В очереди {Queue} нет новых сообщений.", queueOutName);
+				_logger.LogInformation("Остановка слушателя очереди {Queue}.", queueOutName);
 			}
-
-			messages.Clear();
 		}
 
 		private bool QueueExists(IModel channel, string queueName)
@@ -72,9 +64,18 @@ namespace servers_api.services.brokers.bpmintegration
 			}
 		}
 
+		private Task ProcessMessageAsync(string message, string queueName)
+		{
+			// Логика обработки сообщений
+			_logger.LogInformation("Обработка сообщения из {Queue}: {Message}", queueName, message);
+			return Task.CompletedTask;
+		}
+
 		public void StopListening()
 		{
-			throw new NotImplementedException();
+			_logger.LogInformation("Остановка RabbitMQ слушателя...");
+			_channel?.Close();
+			_connection?.Close();
 		}
 	}
 }
