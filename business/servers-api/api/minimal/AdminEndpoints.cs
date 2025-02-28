@@ -2,11 +2,11 @@
 using servers_api.models.entities;
 using servers_api.repositories;
 
-namespace servers_api.api.minimalapi;
+namespace servers_api.api.minimal;
 
 public static class AdminEndpoints
 {
-	public static void MapAdminMinimalApis(
+	public static void MapAdminMinimalApi(
 		this IEndpointRouteBuilder app,
 		ILoggerFactory loggerFactory)
 	{

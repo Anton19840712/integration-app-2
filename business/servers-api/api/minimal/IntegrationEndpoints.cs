@@ -2,17 +2,16 @@
 using Microsoft.AspNetCore.Mvc;
 using servers_api.main.services;
 
-namespace servers_api.api.minimalapi;
+namespace servers_api.api.minimal;
 
-public static class IntregrationEndpoints
+public static class IntegrationEndpoints
 {
-	public static void MapIntegrationMinimalApis(
+	public static void MapIntegrationMinimalApi(
 		this IEndpointRouteBuilder app,
 		ILoggerFactory loggerFactory)
 	{
-		var logger = loggerFactory.CreateLogger("IntregrationEndpoints");
+		var logger = loggerFactory.CreateLogger("IntegrationEndpoints");
 
-		// POST-запрос для конфигурации системы интеграции
 		app.MapPost("/api/servers/teach", async (
 			[FromBody] JsonElement jsonBody,
 			ITeachIntegrationService uploadFileService,
@@ -32,7 +31,6 @@ public static class IntregrationEndpoints
 			}
 		});
 
-		// POST-запрос для старта инстанса нашей системы
 		app.MapPost("/api/servers/run", async (
 			[FromBody] JsonElement jsonBody,
 			IStartNodeService startNodeService,

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Serilog;
-using servers_api.api.minimalapi;
+using servers_api.api.minimal;
 using servers_api.middleware;
 using servers_api.models.configurationsettings;
 using servers_api.models.entities;
@@ -55,7 +55,7 @@ try
 	services.AddSingleton<MongoRepository<QueuesEntity>>();
 	services.AddSingleton<MongoRepository<IncidentEntity>>();
 
-	services.AddHostedService<QueueListenerBackgroundService>();
+	//services.AddHostedService<QueueListenerBackgroundService>();
 	//builder.Services.AddScoped<IHostedService, QueueListenerBackgroundService>();
 
 	builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -79,8 +79,8 @@ try
 	var factory = app.Services.GetRequiredService<ILoggerFactory>();
 
 	app.MapControllers();
-	app.MapIntegrationMinimalApis(factory);
-	app.MapAdminMinimalApis(factory);
+	app.MapIntegrationMinimalApi(factory);
+	app.MapAdminMinimalApi(factory);
 
 	Log.Information("Динамический шлюз запущен и готов к эксплуатации.");
 
