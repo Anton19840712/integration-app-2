@@ -1,6 +1,6 @@
 ﻿using Serilog;
 using servers_api.factory.abstractions;
-using servers_api.factory.tcp.instances;
+using servers_api.factory.udp;
 using servers_api.main.facades;
 using servers_api.main.services;
 
@@ -28,7 +28,7 @@ static class ProtocolProcessingConfiguration
 		services.AddTransient<IProcessingFacade, ProcessingFacade>();
 
 		// tcp:
-		services.AddTransient<TcpServerInstance>();
+		services.AddTransient<UdpServerInstance>();
 		services.AddTransient<TcpClientInstance>();
 
 		Log.Information("Factory сервисы зарегистрированы.");

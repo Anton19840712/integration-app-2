@@ -3,8 +3,6 @@ using servers_api.factory.tcp;
 
 public class TcpFactory : UpInstanceByProtocolFactory
 {
-	public override string Protocol => "TCP"; // Добавлено свойство
-
 	private readonly ILogger<TcpFactory> _logger;
 	private readonly TcpServerInstance _tcpServer;
 	private readonly TcpClientInstance _tcpClient;

@@ -3,8 +3,6 @@ using servers_api.factory.udp;
 
 public class UdpFactory : UpInstanceByProtocolFactory
 {
-	public override string Protocol => "UDP"; // Добавлено свойство
-
 	private readonly ILogger<UdpFactory> _logger;
 	private readonly UdpServerInstance _udpServer;
 	private readonly UdpClientInstance _udpClient;
