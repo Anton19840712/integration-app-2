@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using Serilog;
-using servers_api.factory.tcp.queuesconnections;
 using servers_api.models.configurationsettings;
+using servers_api.queuesconnections;
 
 namespace servers_api.middleware
 {

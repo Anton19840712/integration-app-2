@@ -3,7 +3,7 @@ using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 using System.Text;
 
-namespace servers_api.factory.tcp.queuesconnections;
+namespace servers_api.queuesconnections;
 
 public class RabbitMqService : IRabbitMqService
 {
