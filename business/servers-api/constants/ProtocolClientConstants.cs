@@ -1,6 +1,6 @@
 ﻿namespace servers_api.constants
 {
-	public static class TcpClientConstants
+	public static class ProtocolClientConstants
 	{
 		// Константы для хоста и порта сервера
 		public const string DefaultServerHost = "127.0.0.1";

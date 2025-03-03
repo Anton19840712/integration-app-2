@@ -8,11 +8,14 @@ public class StartNodeService(
 	IIntegrationFacade integrationFacade,
 	ILogger<StartNodeService> logger) : IStartNodeService
 {
-	public async Task<ResponseIntegration> ConfigureNodeAsync(JsonElement jsonBody, CancellationToken stoppingToken)
+	public async Task<ResponseIntegration> ConfigureNodeAsync(
+		JsonElement jsonBody,
+		CancellationToken stoppingToken)
 	{
 		logger.LogInformation("Начало обработки ConfigureNodeAsync");
 
 		var parsedModel = await integrationFacade.ParseJsonAsync(jsonBody, false, stoppingToken);
+
 		var apiStatus = await integrationFacade.ConfigureNodeAsync(parsedModel, stoppingToken);
 
 		logger.LogInformation("Завершение ConfigureNodeAsync");

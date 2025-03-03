@@ -52,8 +52,8 @@ public class TcpClientInstance : IUpClient
 		int serverPort,
 		CancellationToken token)
 	{
-		_host = string.IsNullOrWhiteSpace(serverHost) ? TcpClientConstants.DefaultServerHost : serverHost;
-		_port = serverPort == 0 ? TcpClientConstants.DefaultServerPort : serverPort;
+		_host = string.IsNullOrWhiteSpace(serverHost) ? ProtocolClientConstants.DefaultServerHost : serverHost;
+		_port = serverPort == 0 ? ProtocolClientConstants.DefaultServerPort : serverPort;
 
 		while (!token.IsCancellationRequested)
 		{
@@ -66,7 +66,7 @@ public class TcpClientInstance : IUpClient
 				_logger.LogInformation("Успешное подключение!");
 
 				using var stream = client.GetStream();
-				byte[] buffer = new byte[TcpClientConstants.BufferSize];
+				byte[] buffer = new byte[ProtocolClientConstants.BufferSize];
 
 				while (!token.IsCancellationRequested)
 				{

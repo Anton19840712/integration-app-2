@@ -6,7 +6,7 @@ using servers_api.validation;
 using servers_api.messaging.sending;
 using servers_api.models.response;
 
-namespace servers_api.factory.tcp.instances;
+namespace servers_api.factory.tcp;
 
 /// <summary>
 /// Tcp сервер, который продолжает отправлять сообщения после возврата ResponseIntegration.

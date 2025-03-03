@@ -13,7 +13,10 @@ namespace servers_api.main.facades
 		private readonly ITeachService _teachService;
 		private readonly ISenderService _senderService;
 
-		public ProcessingFacade(IJsonParsingService jsonParsingService, ITeachService teachService, ISenderService senderService)
+		public ProcessingFacade(
+			IJsonParsingService jsonParsingService,
+			ITeachService teachService,
+			ISenderService senderService)
 		{
 			_jsonParsingService = jsonParsingService;
 			_teachService = teachService;

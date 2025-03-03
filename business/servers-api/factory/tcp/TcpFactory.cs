@@ -1,8 +1,10 @@
 ﻿using servers_api.factory.abstractions;
-using servers_api.factory.tcp.instances;
+using servers_api.factory.tcp;
 
 public class TcpFactory : UpInstanceByProtocolFactory
 {
+	public override string Protocol => "TCP"; // Добавлено свойство
+
 	private readonly ILogger<TcpFactory> _logger;
 	private readonly TcpServerInstance _tcpServer;
 	private readonly TcpClientInstance _tcpClient;
@@ -20,13 +22,13 @@ public class TcpFactory : UpInstanceByProtocolFactory
 
 	public override IUpServer CreateServer()
 	{
-		_logger.LogInformation("Creating a TcpServer instance.");
+		_logger.LogInformation("Создание TCP-сервера.");
 		return _tcpServer;
 	}
 
 	public override IUpClient CreateClient()
 	{
-		_logger.LogInformation("Creating a TcpClient instance.");
+		_logger.LogInformation("Создание TCP-клиента.");
 		return _tcpClient;
 	}
 }

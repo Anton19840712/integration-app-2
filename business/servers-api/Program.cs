@@ -55,7 +55,6 @@ try
 	services.AddSingleton<MongoRepository<IncidentEntity>>();
 
 	services.AddHostedService<QueueListenerBackgroundService>();
-	//builder.Services.AddScoped<IHostedService, QueueListenerBackgroundService>();
 
 	builder.Services.AddSingleton<IMongoClient>(sp =>
 	{

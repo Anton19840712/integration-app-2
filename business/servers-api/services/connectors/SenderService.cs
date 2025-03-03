@@ -12,11 +12,15 @@ namespace servers_api.services.connectors
 		IProtocolManager protocolManager,
 		IMapper mapper) : ISenderService
 	{
-		public async Task<ResponseIntegration> UpAsync(CombinedModel parsedModel, CancellationToken stoppingToken)
+		public async Task<ResponseIntegration> UpAsync(
+			CombinedModel parsedModel,
+			CancellationToken stoppingToken)
 		{
 			logger.LogInformation(
 				"Запуск UpAsync метода с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
-				parsedModel.Protocol, parsedModel.DataOptions.IsServer, parsedModel.DataOptions.IsClient);
+				parsedModel.Protocol,
+				parsedModel.DataOptions.IsServer,
+				parsedModel.DataOptions.IsClient);
 
 			// Используем AutoMapper для маппинга
 			InstanceModel instanceModel = parsedModel.DataOptions.IsClient
@@ -25,7 +29,9 @@ namespace servers_api.services.connectors
 
 			if (instanceModel is ClientInstanceModel clientModel)
 			{
-				logger.LogInformation("Настройка клиента с хостом {Host} и портом {Port}", clientModel.ClientHost, clientModel.ClientPort);
+				logger.LogInformation("Настройка клиента с хостом {Host} и портом {Port}",
+					clientModel.ClientHost,
+					clientModel.ClientPort);
 
 				// Передаем всю модель в метод ConfigureNodeAsync
 				var responseIntegration = await protocolManager.ConfigureAsync(
@@ -35,7 +41,9 @@ namespace servers_api.services.connectors
 			}
 			else if (instanceModel is ServerInstanceModel serverModel)
 			{
-				logger.LogInformation("Настройка сервера с хостом {Host} и портом {Port}", serverModel.Host, serverModel.Port);
+				logger.LogInformation("Настройка сервера с хостом {Host} и портом {Port}",
+					serverModel.Host,
+					serverModel.Port);
 
 				// Передаем всю модель в метод ConfigureNodeAsync
 				var responseIntegration = await protocolManager.ConfigureAsync(
