@@ -29,6 +29,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="factory\udp\" />
 	  <Folder Include="messaging\sending\" />
 	</ItemGroup>
 </Project>
