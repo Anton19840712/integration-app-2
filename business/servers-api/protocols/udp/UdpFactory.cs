@@ -1,5 +1,5 @@
-﻿using servers_api.factory.abstractions;
-using servers_api.factory.udp;
+﻿using servers_api.factory;
+using servers_api.protocols.udp;
 
 public class UdpFactory : UpInstanceByProtocolFactory
 {

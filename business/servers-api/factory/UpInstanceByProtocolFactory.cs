@@ -1,4 +1,4 @@
-﻿namespace servers_api.factory.abstractions;
+﻿namespace servers_api.factory;
 
 /// <summary>
 /// Абстрактный класс создания сервера или клиента согласно выбранного протокола.

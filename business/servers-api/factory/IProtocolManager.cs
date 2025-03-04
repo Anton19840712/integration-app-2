@@ -1,7 +1,7 @@
 ﻿using servers_api.models.internallayer.instance;
 using servers_api.models.response;
 
-namespace servers_api.factory.abstractions;
+namespace servers_api.factory;
 
 public interface IProtocolManager
 {

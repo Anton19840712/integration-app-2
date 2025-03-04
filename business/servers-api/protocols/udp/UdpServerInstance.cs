@@ -1,12 +1,12 @@
 ﻿using System.Net.Sockets;
 using System.Net;
-using servers_api.factory.abstractions;
 using servers_api.models.internallayer.instance;
 using servers_api.validation;
 using servers_api.messaging.sending;
 using servers_api.models.response;
+using servers_api.factory;
 
-namespace servers_api.factory.udp;
+namespace servers_api.protocols.udp;
 
 /// <summary>
 /// UDP сервер, который продолжает отправлять сообщения после возврата ResponseIntegration.

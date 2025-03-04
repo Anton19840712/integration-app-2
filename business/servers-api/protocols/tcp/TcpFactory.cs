@@ -1,5 +1,5 @@
-﻿using servers_api.factory.abstractions;
-using servers_api.factory.tcp;
+﻿using servers_api.factory;
+using servers_api.protocols.tcp;
 
 public class TcpFactory : UpInstanceByProtocolFactory
 {
