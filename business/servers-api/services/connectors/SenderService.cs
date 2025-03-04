@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using servers_api.factory.abstractions;
+using servers_api.factory;
 using servers_api.models.internallayer.common;
 using servers_api.models.internallayer.instance;
 using servers_api.models.response;
