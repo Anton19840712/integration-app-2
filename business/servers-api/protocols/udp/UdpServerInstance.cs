@@ -1,70 +1,85 @@
-﻿using System.Net.Sockets;
-using System.Net;
+﻿using System.Net;
+using System.Net.Sockets;
 using servers_api.models.internallayer.instance;
 using servers_api.validation;
 using servers_api.messaging.sending;
 using servers_api.models.response;
 using servers_api.factory;
+using System.Text;
 
-namespace servers_api.protocols.udp;
-
-/// <summary>
-/// UDP сервер, который продолжает отправлять сообщения после возврата ResponseIntegration.
-/// </summary>
-public class UdpServerInstance : IUpServer
+namespace servers_api.protocols.udp
 {
-	private readonly IMessageSender _messageSender;
-	private readonly ILogger<UdpServerInstance> _logger;
-	private readonly IServerInstanceFluentValidator _validator;
-
-	public UdpServerInstance(
-		IMessageSender messageSender,
-		IServerInstanceFluentValidator validator,
-		ILogger<UdpServerInstance> logger)
+	/// <summary>
+	/// UDP сервер, который продолжает отправлять сообщения после возврата ResponseIntegration.
+	/// </summary>
+	public class UdpServerInstance : IUpServer
 	{
-		_messageSender = messageSender;
-		_validator = validator;
-		_logger = logger;
-	}
+		private readonly IMessageSender _messageSender;
+		private readonly ILogger<UdpServerInstance> _logger;
+		private readonly IServerInstanceFluentValidator _validator;
 
-	public async Task<ResponseIntegration> UpServerAsync(
-		ServerInstanceModel instanceModel,
-		CancellationToken cancellationToken = default)
-	{
-		var validationResponse = _validator.Validate(instanceModel);
-		if (validationResponse != null)
-			return validationResponse;
-
-		var endpoint = new IPEndPoint(IPAddress.Parse(instanceModel.Host), instanceModel.Port);
-		using var udpServer = new UdpClient(endpoint);
-
-		_logger.LogInformation("UDP сервер запущен на {Host}:{Port}", instanceModel.Host, instanceModel.Port);
-
-		_ = Task.Run(async () =>
+		public UdpServerInstance(
+			IMessageSender messageSender,
+			IServerInstanceFluentValidator validator,
+			ILogger<UdpServerInstance> logger)
 		{
-			while (!cancellationToken.IsCancellationRequested)
-			{
-				try
-				{
-					var receivedResult = await udpServer.ReceiveAsync(cancellationToken);
-					string message = System.Text.Encoding.UTF8.GetString(receivedResult.Buffer);
-					_logger.LogInformation("Получено сообщение: {Message}", message);
+			_messageSender = messageSender;
+			_validator = validator;
+			_logger = logger;
+		}
 
-					// Ответ клиенту (если необходимо)
-					byte[] responseData = System.Text.Encoding.UTF8.GetBytes("Сообщение принято.");
-					await udpServer.SendAsync(responseData, responseData.Length, receivedResult.RemoteEndPoint);
-				}
-				catch (Exception ex)
+		public async Task<ResponseIntegration> UpServerAsync(
+			ServerInstanceModel instanceModel,
+			CancellationToken cancellationToken = default)
+		{
+			var validationResponse = _validator.Validate(instanceModel);
+			if (validationResponse != null)
+				return validationResponse;
+
+			var endpoint = new IPEndPoint(IPAddress.Parse(instanceModel.Host), instanceModel.Port);
+			var udpServer = new UdpClient(endpoint);
+
+			_logger.LogInformation("UDP сервер запущен на {Host}:{Port}", instanceModel.Host, instanceModel.Port);
+
+			try
+			{
+				// Логируем информацию о запуске сервера
+				_logger.LogInformation("Сервер ожидает подключения клиента...");
+
+				// Цикл для постоянного приема сообщений
+				while (true)
 				{
-					_logger.LogError(ex, "Ошибка при обработке входящего UDP сообщения.");
+					try
+					{
+						var receivedResult = await udpServer.ReceiveAsync(cancellationToken);
+						_logger.LogInformation("Получены данные от клиента {RemoteEndPoint}: {Data}",
+							receivedResult.RemoteEndPoint, Encoding.UTF8.GetString(receivedResult.Buffer));
+
+						// Ответ на полученные данные
+						var responseData = Encoding.UTF8.GetBytes("Ответ от сервера: сообщение получено");
+						await udpServer.SendAsync(responseData, responseData.Length, receivedResult.RemoteEndPoint);
+						_logger.LogInformation("Ответ отправлен клиенту {RemoteEndPoint}", receivedResult.RemoteEndPoint);
+					}
+					catch (OperationCanceledException)
+					{
+						// Игнорируем исключение отмены, продолжаем ожидание подключений
+						_logger.LogInformation("Ожидание клиента продолжено...");
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Ошибка при приеме сообщения.");
+					}
 				}
 			}
-		}, cancellationToken);
-
-		return new ResponseIntegration
-		{
-			Message = "UDP сервер запущен.",
-			Result = true
-		};
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Ошибка запуска UDP-сервера.");
+				return new ResponseIntegration
+				{
+					Message = "Ошибка запуска UDP-сервера.",
+					Result = false
+				};
+			}
+		}
 	}
 }

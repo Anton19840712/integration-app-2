@@ -1,8 +1,10 @@
 ﻿using System.Text.Json;
-using servers_api.main.facades;
 using servers_api.models.entities;
 using servers_api.models.response;
 using servers_api.repositories;
+using servers_api.services.brokers.bpmintegration;
+using servers_api.Services.InternalSystems;
+using servers_api.Services.Parsers;
 
 namespace servers_api.main.services;
 
@@ -12,7 +14,9 @@ namespace servers_api.main.services;
 /// </summary>
 public class TeachIntegrationService(
 	MongoRepository<QueuesEntity> queuesRepository,
-	IIntegrationFacade integrationFacade,
+	ITeachSenderHandler teachService,
+	IJsonParsingService jsonParsingService,
+	IRabbitMqQueueListener queueListener,
 	ILogger<TeachIntegrationService> logger) : ITeachIntegrationService
 {
 	public async Task<List<ResponseIntegration>> TeachAsync(
@@ -25,7 +29,10 @@ public class TeachIntegrationService(
 		{
 			//1
 			logger.LogInformation("Выполняется ParseJsonAsync.");
-			var parsedCombinedModel = await integrationFacade.ParseJsonAsync(jsonBody, true, stoppingToken);
+			var parsedCombinedModel = await jsonParsingService.ParseJsonAsync(
+				jsonBody,
+				isTeaching: true,
+				stoppingToken);
 
 			//2 логика работы с коллекцией базы данных: 
 			//если модель с такими названиями очередей существует:
@@ -54,14 +61,14 @@ public class TeachIntegrationService(
 
 			//3
 			logger.LogInformation("Выполняется ExecuteTeachAsync.");
-			var apiStatus = await integrationFacade.TeachBpmAsync(
+			var apiStatus = await teachService.TeachBPMAsync(
 				parsedCombinedModel,
 				stoppingToken);
 
 			//4
 			logger.LogInformation("Запускаем слушателя в фоне для очереди: {Queue}.", parsedCombinedModel.OutQueueName);
 
-				await integrationFacade.StartListeningAsync(
+				await queueListener.StartListeningAsync(
 				parsedCombinedModel.OutQueueName,
 				stoppingToken);
 

@@ -1,6 +1,6 @@
-﻿using servers_api.main.facades;
-using servers_api.models.entities;
+﻿using servers_api.models.entities;
 using servers_api.repositories;
+using servers_api.services.brokers.bpmintegration;
 
 namespace servers_api.api.minimal;
 
@@ -13,7 +13,7 @@ public static class AdminEndpoints
 		var logger = loggerFactory.CreateLogger("AdminEndpoints");
 
 		app.MapGet("/api/consume", async (
-			IIntegrationFacade integrationFacade,
+			IRabbitMqQueueListener queueListener,
 			MongoRepository<QueuesEntity> queuesRepository,
 			CancellationToken stoppingToken) =>
 		{
@@ -29,7 +29,7 @@ public static class AdminEndpoints
 					try
 					{
 						// Для каждой очереди запускаем слушателя в отдельной задаче:
-						await integrationFacade.StartListeningAsync(element.OutQueueName, stoppingToken);
+						await queueListener.StartListeningAsync(element.OutQueueName, stoppingToken);
 					}
 					catch (Exception ex)
 					{

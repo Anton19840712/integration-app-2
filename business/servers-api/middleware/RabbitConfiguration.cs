@@ -6,7 +6,6 @@ using servers_api.queuesconnections;
 
 namespace servers_api.middleware
 {
-
 	public static class RabbitConfiguration
 	{
 		/// <summary>

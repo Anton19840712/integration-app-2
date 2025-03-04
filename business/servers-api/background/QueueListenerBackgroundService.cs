@@ -1,6 +1,6 @@
-﻿using servers_api.main.facades;
-using servers_api.models.entities;
+﻿using servers_api.models.entities;
 using servers_api.repositories;
+using servers_api.services.brokers.bpmintegration;
 
 public class QueueListenerBackgroundService : BackgroundService
 {
@@ -20,13 +20,13 @@ public class QueueListenerBackgroundService : BackgroundService
 		try
 		{
 			using var scope = _scopeFactory.CreateScope();
-			var integrationFacade = scope.ServiceProvider.GetRequiredService<IIntegrationFacade>();
+			var queueListener = scope.ServiceProvider.GetRequiredService<IRabbitMqQueueListener>();
 			var queuesRepository = scope.ServiceProvider.GetRequiredService<MongoRepository<QueuesEntity>>();
 
 			var elements = await queuesRepository.GetAllAsync();
 
 			var listeningTasks = elements
-				.Select(element => Task.Run(() => integrationFacade.StartListeningAsync(element.OutQueueName, stoppingToken), stoppingToken))
+				.Select(element => Task.Run(() => queueListener.StartListeningAsync(element.OutQueueName, stoppingToken), stoppingToken))
 				.ToList();
 
 			await Task.WhenAll(listeningTasks);

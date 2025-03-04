@@ -1,39 +1,72 @@
-﻿using servers_api.factory;
+﻿using AutoMapper;
+using servers_api.factory;
+using servers_api.models.internallayer.common;
 using servers_api.models.internallayer.instance;
 using servers_api.models.response;
 
 public class ProtocolManager : IProtocolManager
 {
-	private readonly IProtocolFactory _protocolFactory;
+	private readonly IServiceProvider serviceProvider;
 	private readonly ILogger<ProtocolManager> _logger;
+	private readonly IMapper _mapper;
 
-	public ProtocolManager(IProtocolFactory protocolFactory, ILogger<ProtocolManager> logger)
+	public ProtocolManager(
+		IServiceProvider serviceProvider,
+		ILogger<ProtocolManager> logger,
+		IMapper mapper)
 	{
-		_protocolFactory = protocolFactory;
+		this.serviceProvider = serviceProvider;
 		_logger = logger;
+		_mapper = mapper;
 	}
 
-	public async Task<ResponseIntegration> ConfigureAsync(InstanceModel instanceModel)
+	public async Task<ResponseIntegration> UpNodeAsync(
+		CombinedModel parsedModel,
+		CancellationToken stoppingToken)
 	{
-		var factory = _protocolFactory.GetFactory(instanceModel.Protocol);
+		_logger.LogInformation(
+			"Запуск ConfigureAsync метода с протоколом: {Protocol}, роль: Сервер - {IsServer}, Клиент - {IsClient}",
+			parsedModel.Protocol,
+			parsedModel.DataOptions.IsServer,
+			parsedModel.DataOptions.IsClient);
+
+		InstanceModel instanceModel = parsedModel.DataOptions.IsClient
+			? _mapper.Map<ClientInstanceModel>(parsedModel)
+			: _mapper.Map<ServerInstanceModel>(parsedModel);
+
+
+		// Динамическое получение фабрики на основе протокола
+		UpInstanceByProtocolFactory factory = parsedModel.Protocol.ToLower() switch
+		{
+			"tcp" => serviceProvider.GetService<TcpFactory>(),  // Убираем необходимость использования GetRequiredService
+			"udp" => serviceProvider.GetService<UdpFactory>(),
+			_ => null
+		};
+
+		if (factory == null)
+		{
+			_logger.LogError("Неизвестный протокол: {Protocol}", parsedModel.Protocol);
+		}
 
 		if (instanceModel is ClientInstanceModel clientModel)
 		{
-			return await ConfigureClientAsync(factory, clientModel);
+			return await ConfigureClientAsync(clientModel, factory);
 		}
 		else if (instanceModel is ServerInstanceModel serverModel)
 		{
-			return await ConfigureServerAsync(factory, serverModel);
+			return await ConfigureServerAsync(serverModel, factory);
 		}
 
 		return new ResponseIntegration
 		{
-			Message = "Неизвестный тип инстанса",
+			Message = "Настройка протокола не была завершена успешно.",
 			Result = false
 		};
 	}
 
-	private async Task<ResponseIntegration> ConfigureClientAsync(UpInstanceByProtocolFactory factory, ClientInstanceModel clientModel)
+	private async Task<ResponseIntegration> ConfigureClientAsync(
+		ClientInstanceModel clientModel,
+		UpInstanceByProtocolFactory factory)
 	{
 		var client = factory.CreateClient();
 		var serverHost = clientModel.ServerHostPort.Host;
@@ -46,7 +79,9 @@ public class ProtocolManager : IProtocolManager
 		return await client.ConnectToServerAsync(clientModel, serverHost, serverPort, cts.Token);
 	}
 
-	private async Task<ResponseIntegration> ConfigureServerAsync(UpInstanceByProtocolFactory factory, ServerInstanceModel serverModel)
+	private async Task<ResponseIntegration> ConfigureServerAsync(
+		ServerInstanceModel serverModel,
+		UpInstanceByProtocolFactory factory)
 	{
 		var server = factory.CreateServer();
 		_logger.LogInformation("Запуск сервера {Protocol} на {Host}:{Port}",

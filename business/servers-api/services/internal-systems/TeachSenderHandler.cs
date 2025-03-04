@@ -13,11 +13,11 @@ namespace servers_api.Services.InternalSystems;
 /// Такая степень надежности используется для передачи модели обучения.
 /// Для передачи данных по определенному протоколу, обслуюивающему инциденты - выбрана другая концепция outbox.
 /// </summary>
-public class TeachService(
+public class TeachSenderHandler(
 	IHttpClientFactory httpClientFactory,
-	ILogger<TeachService> logger) : ITeachService
+	ILogger<TeachSenderHandler> logger) : ITeachSenderHandler
 {
-	public async Task<ResponseIntegration> TeachBPMNAsync(CombinedModel parsedModel, CancellationToken token)
+	public async Task<ResponseIntegration> TeachBPMAsync(CombinedModel parsedModel, CancellationToken token)
 	{
 		logger.LogInformation("Начало обработки TeachBPMNAsync");
 

@@ -3,9 +3,9 @@ using servers_api.models.response;
 
 namespace servers_api.Services.InternalSystems;
 
-public interface ITeachService
+public interface ITeachSenderHandler
 {
-	Task<ResponseIntegration> TeachBPMNAsync(
+	Task<ResponseIntegration> TeachBPMAsync(
 		CombinedModel model,
 		CancellationToken token);
 }

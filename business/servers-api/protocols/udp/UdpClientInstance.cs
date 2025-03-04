@@ -64,18 +64,18 @@ public class UdpClientInstance : IUpClient
 
 			while (!token.IsCancellationRequested)
 			{
-				// Отправка сообщения серверу
+				// Отправка сообщения серверу для его понимания, что мы существуюем.
 				string messageToSend = "Hello from UDP client";
 				byte[] sendBytes = Encoding.UTF8.GetBytes(messageToSend);
 				await client.SendAsync(sendBytes, sendBytes.Length);
 
-				_logger.LogInformation("Отправлено сообщение: {Message}", messageToSend);
+				_logger.LogInformation("Отправлено health-check сообщение с клиента udp: {Message}", messageToSend);
 
 				// Ожидание ответа от сервера
 				UdpReceiveResult receivedResult = await client.ReceiveAsync();
 				string receivedMessage = Encoding.UTF8.GetString(receivedResult.Buffer);
 
-				_logger.LogInformation("Получено сообщение от {RemoteEndPoint}: {Message}",
+				_logger.LogInformation("Получено сообщение с адреса {RemoteEndPoint}: {Message}",
 					receivedResult.RemoteEndPoint, receivedMessage);
 
 				await ProcessMessagesAsync(receivedMessage, instanceModel.InQueueName, instanceModel.OutQueueName);

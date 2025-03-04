@@ -1,7 +1,4 @@
 ﻿using Serilog;
-using servers_api.main.services;
-using servers_api.services.connectors;
-using servers_api.Services.Connectors;
 using servers_api.Services.InternalSystems;
 using servers_api.Services.Parsers;
 
@@ -17,12 +14,7 @@ static class IntegrationConfiguration
 		Log.Information("Регистрация API-сервисов...");
 
 		services.AddTransient<IJsonParsingService, JsonParsingService>();
-		services.AddTransient<ISenderService, SenderService>();
-
-		services.AddTransient<ITeachIntegrationService, TeachIntegrationService>();
-		services.AddTransient<ITeachService, TeachService>();
-
-		services.AddTransient<IStartNodeService, StartNodeService>();
+		services.AddTransient<ITeachSenderHandler, TeachSenderHandler>();
 
 		Log.Information("API-сервисы зарегистрированы.");
 

@@ -68,7 +68,7 @@ try
 		var databaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
 		return mongoClient.GetDatabase(databaseName);
 	});
-
+	
 	var app = builder.Build();
 
 	app.UseSerilogRequestLogging();
