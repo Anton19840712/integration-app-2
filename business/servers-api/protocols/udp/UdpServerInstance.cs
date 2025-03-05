@@ -1,11 +1,11 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using servers_api.models.response;
 using servers_api.models.internallayer.instance;
 using servers_api.validation;
 using servers_api.messaging.sending;
-using servers_api.models.response;
 using servers_api.factory;
-using System.Text;
 
 namespace servers_api.protocols.udp
 {
@@ -14,7 +14,6 @@ namespace servers_api.protocols.udp
 	/// </summary>
 	public class UdpServerInstance : IUpServer
 	{
-		private readonly IMessageSender _messageSender;
 		private readonly ILogger<UdpServerInstance> _logger;
 		private readonly IServerInstanceFluentValidator _validator;
 
@@ -23,7 +22,6 @@ namespace servers_api.protocols.udp
 			IServerInstanceFluentValidator validator,
 			ILogger<UdpServerInstance> logger)
 		{
-			_messageSender = messageSender;
 			_validator = validator;
 			_logger = logger;
 		}
@@ -32,54 +30,47 @@ namespace servers_api.protocols.udp
 			ServerInstanceModel instanceModel,
 			CancellationToken cancellationToken = default)
 		{
-			var validationResponse = _validator.Validate(instanceModel);
-			if (validationResponse != null)
-				return validationResponse;
+			UdpClient udp = new UdpClient(888);
 
-			var endpoint = new IPEndPoint(IPAddress.Parse(instanceModel.Host), instanceModel.Port);
-			var udpServer = new UdpClient(endpoint);
+			_logger.LogInformation("[Сервер] Ожидание первого сообщения от клиента...");
 
-			_logger.LogInformation("UDP сервер запущен на {Host}:{Port}", instanceModel.Host, instanceModel.Port);
+			// Ожидание первого сообщения от клиента
+			UdpReceiveResult receiveResult = await udp.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+			byte[] receivedBytes = receiveResult.Buffer; // Берем данные из Buffer
+			string clientMessage = Encoding.UTF8.GetString(receivedBytes);
+			_logger.LogInformation($"[Сервер] Получено от клиента: {clientMessage}");
 
-			try
+			// Сохраняем адрес клиента
+			IPEndPoint clientEndPoint = receiveResult.RemoteEndPoint;
+
+			// Возвращаем успешный ответ в API
+			var response = new ResponseIntegration
 			{
-				// Логируем информацию о запуске сервера
-				_logger.LogInformation("Сервер ожидает подключения клиента...");
+				Message = "Соединение установлено успешно",
+				Result = true
+			};
 
-				// Цикл для постоянного приема сообщений
-				while (true)
-				{
-					try
-					{
-						var receivedResult = await udpServer.ReceiveAsync(cancellationToken);
-						_logger.LogInformation("Получены данные от клиента {RemoteEndPoint}: {Data}",
-							receivedResult.RemoteEndPoint, Encoding.UTF8.GetString(receivedResult.Buffer));
+			// Запускаем бесконечный цикл отправки сообщений клиенту в фоновом потоке
+			_ = Task.Run(() => HandleConsoleInput(udp, clientEndPoint, cancellationToken), cancellationToken);
 
-						// Ответ на полученные данные
-						var responseData = Encoding.UTF8.GetBytes("Ответ от сервера: сообщение получено");
-						await udpServer.SendAsync(responseData, responseData.Length, receivedResult.RemoteEndPoint);
-						_logger.LogInformation("Ответ отправлен клиенту {RemoteEndPoint}", receivedResult.RemoteEndPoint);
-					}
-					catch (OperationCanceledException)
-					{
-						// Игнорируем исключение отмены, продолжаем ожидание подключений
-						_logger.LogInformation("Ожидание клиента продолжено...");
-					}
-					catch (Exception ex)
-					{
-						_logger.LogError(ex, "Ошибка при приеме сообщения.");
-					}
-				}
-			}
-			catch (Exception ex)
+			return response;
+		}
+
+		private void HandleConsoleInput(UdpClient udp, IPEndPoint clientEndPoint, CancellationToken cancellationToken)
+		{
+			while (!cancellationToken.IsCancellationRequested)
 			{
-				_logger.LogError(ex, "Ошибка запуска UDP-сервера.");
-				return new ResponseIntegration
-				{
-					Message = "Ошибка запуска UDP-сервера.",
-					Result = false
-				};
+				Console.Write("[Сервер] Введите сообщение для отправки клиенту: ");
+				string response = Console.ReadLine();
+
+				if (string.IsNullOrWhiteSpace(response)) break; // Выход, если пустая строка
+
+				byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+				udp.Send(responseBytes, responseBytes.Length, clientEndPoint);
+				Console.WriteLine($"[Сервер] Отправлено клиенту: {response}");
 			}
+
+			Console.WriteLine("[Сервер] Завершение работы...");
 		}
 	}
 }

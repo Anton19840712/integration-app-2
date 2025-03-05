@@ -2,34 +2,41 @@
 using System.Net.Sockets;
 using System.Text;
 
-class UdpClientApp
+namespace ConsoleApp1
 {
-	private const int Port = 5001;
-	private const string ServerIp = "127.0.0.1"; // Адрес сервера
-
-	static void Main()
+	class Program
 	{
-		var udpClient = new UdpClient();
-		var serverEndPoint = new IPEndPoint(IPAddress.Parse(ServerIp), Port);
+		static UdpClient udp = new UdpClient();
 
-		try
+		static void Main(string[] args)
 		{
-			// Сообщение, которое будет отправлено серверу
-			string message = "Привет, сервер!";
-			byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+			Console.Title = "Client";
+			udp.Connect("127.0.0.1", 888);
 
-			// Отправка сообщения серверу
-			udpClient.Send(messageBytes, messageBytes.Length, serverEndPoint);
-			Console.WriteLine($"Сообщение отправлено на {ServerIp}:{Port}");
+			IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-			// Получение ответа от сервера
-			var receivedData = udpClient.Receive(ref serverEndPoint);
-			string serverResponse = Encoding.UTF8.GetString(receivedData);
-			Console.WriteLine($"Ответ от сервера: {serverResponse}");
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Ошибка: {ex.Message}");
+			while (true)
+			{
+				try
+				{
+					// Отправка сообщения
+					string message = "Привет, сервер!";
+					byte[] sendByte = Encoding.UTF8.GetBytes(message);
+					udp.Send(sendByte, sendByte.Length);
+					Console.WriteLine($"[Клиент] Отправлено: {message}");
+
+					// Ожидание ответа от сервера
+					byte[] responseBytes = udp.Receive(ref serverEndPoint);
+					string response = Encoding.UTF8.GetString(responseBytes);
+					Console.WriteLine($"[Клиент] Получен ответ от сервера: {response}");
+
+					Thread.Sleep(2000);
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[Клиент] Ошибка: {ex.Message}");
+				}
+			}
 		}
 	}
 }
