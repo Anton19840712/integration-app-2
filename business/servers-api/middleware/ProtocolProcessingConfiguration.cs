@@ -17,11 +17,9 @@ static class ProtocolProcessingConfiguration
 
 		// Добавляем зависимые классы, которые используются в фабриках
 		services.AddTransient<UdpClientInstance>();
-		services.AddScoped<UdpServerInstance>();
-		services.AddTransient<TcpClientInstance>();
+		services.AddTransient<UdpServerInstance>();
 
-		//UdpServerInstance 
-		services.AddScoped<UdpServerInstance>();
+		services.AddTransient<TcpClientInstance>();
 		services.AddTransient<TcpServerInstance>();
 
 		// Регистрируем фабрики с областью жизни Scoped
