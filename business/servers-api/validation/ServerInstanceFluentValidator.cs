@@ -35,6 +35,10 @@ public class ServerInstanceFluentValidator : IServerInstanceFluentValidator
 			};
 		}
 
-		return null;
+		return new ResponseIntegration
+		{
+			Message = "No mistakes found",
+			Result = true
+		};
 	}
 }
