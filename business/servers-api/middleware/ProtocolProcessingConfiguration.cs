@@ -26,10 +26,12 @@ static class ProtocolProcessingConfiguration
 		services.AddTransient<HttpClientInstance>();
 		services.AddTransient<HttpServerInstance>();
 
+		services.AddTransient<IUpClient, HttpClientInstance>();
+
 		// Регистрируем фабрики с областью жизни Scoped
 		services.AddScoped<TcpFactory>();
 		services.AddScoped<UdpFactory>();
-		services.AddScoped<HttpFactory>();
+		services.AddSingleton<HttpFactory>();
 
 		// Регистрируем словарь с фабриками как Singleton
 		services.AddSingleton(provider =>
