@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Serilog;
+using servers_api.api.controllers;
 using servers_api.api.minimal;
 using servers_api.middleware;
 using servers_api.models.configurationsettings;
@@ -68,7 +69,9 @@ try
 		var databaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
 		return mongoClient.GetDatabase(databaseName);
 	});
-	
+
+	services.AddTransient<FileHashService>();
+
 	var app = builder.Build();
 
 	app.UseSerilogRequestLogging();
