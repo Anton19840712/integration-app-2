@@ -1,4 +1,5 @@
-﻿using servers_api.models.entities;
+﻿using rabbit_listener;
+using servers_api.models.entities;
 using servers_api.repositories;
 using servers_api.services.brokers.bpmintegration;
 
@@ -50,11 +51,26 @@ public static class AdminEndpoints
 			}
 		});
 
-		// Тестовый эндпоинт /api/ping
-		app.MapGet("/api/ping", (HttpContext context) =>
+		app.MapGet("/api/consume-sftp", async (
+			string queueSftpName,
+			string pathToSave,
+			RabbitMqSftpListener queueListener,
+			CancellationToken stoppingToken) =>
 		{
-			Console.WriteLine($"Ping requested from {context.Connection.RemoteIpAddress}");
-			return Results.Ok("Hello, world!");
+			try
+			{
+				logger.LogInformation("Запуск прослушивания очереди {Queue}", queueSftpName);
+
+				await queueListener.Proce(queueSftpName, stoppingToken);
+
+				logger.LogInformation("Процесс получения сообщений из очереди {Queue} завершен.", queueSftpName);
+				return Results.Ok();
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Ошибка при получении сообщений из очереди {Queue}", queueSftpName);
+				return Results.Problem(ex.Message);
+			}
 		});
 	}
 }

@@ -1,4 +1,4 @@
-﻿namespace servers_api.api.controllers
+﻿namespace servers_api.models.configurationsettings
 {
 	public class SftpConfig
 	{

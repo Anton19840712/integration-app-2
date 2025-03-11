@@ -17,7 +17,10 @@ namespace servers_api.services.brokers.bpmintegration
 			_logger = logger;
 		}
 
-		public async Task StartListeningAsync(string queueOutName, CancellationToken stoppingToken)
+		public async Task StartListeningAsync(
+			string queueOutName,
+			CancellationToken stoppingToken,
+			string pathForSave = null)
 		{
 			_connection = _connectionFactory.CreateConnection();
 			_channel = _connection.CreateModel();
@@ -33,14 +36,12 @@ namespace servers_api.services.brokers.bpmintegration
 			{
 				var message = Encoding.UTF8.GetString(ea.Body.ToArray());
 				_logger.LogInformation("Получено сообщение из {Queue}: {Message}", queueOutName, message);
-
 				await ProcessMessageAsync(message, queueOutName);
 			};
 
 			_logger.LogInformation("Подключен к очереди {Queue}. Ожидание сообщений...", queueOutName);
 			_channel.BasicConsume(queue: queueOutName, autoAck: true, consumer: consumer);
 
-			// Держим процесс активным, пока не получен сигнал отмены
 			try
 			{
 				await Task.Delay(Timeout.Infinite, stoppingToken);
@@ -49,6 +50,12 @@ namespace servers_api.services.brokers.bpmintegration
 			{
 				_logger.LogInformation("Остановка слушателя очереди {Queue}.", queueOutName);
 			}
+		}
+
+		protected virtual Task ProcessMessageAsync(string message, string queueName)
+		{
+			_logger.LogInformation("Обработка сообщения из {Queue}: {Message}", queueName, message);
+			return Task.CompletedTask;
 		}
 
 		private bool QueueExists(IModel channel, string queueName)
@@ -62,13 +69,6 @@ namespace servers_api.services.brokers.bpmintegration
 			{
 				return false;
 			}
-		}
-
-		private Task ProcessMessageAsync(string message, string queueName)
-		{
-			// Логика обработки сообщений
-			_logger.LogInformation("Обработка сообщения из {Queue}: {Message}", queueName, message);
-			return Task.CompletedTask;
 		}
 
 		public void StopListening()

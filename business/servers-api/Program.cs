@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using rabbit_listener;
+using RabbitMQ.Client;
 using Serilog;
 using servers_api.api.controllers;
 using servers_api.api.minimal;
@@ -42,7 +44,7 @@ try
 	services.AddOutboxServices();
 	services.AddValidationServices();
 
-	services.AddSingleton<IRabbitMqQueueListener, RabbitMqQueueListener>();
+	//-------------
 
 	services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
 
@@ -72,6 +74,20 @@ try
 
 	services.AddTransient<FileHashService>();
 
+	services.AddSingleton<SftpConfig>(new SftpConfig
+	{
+		Host = "192.168.100.3",
+		Port = 22,
+		UserName = "tester",
+		Password = "password"
+	});
+	services.AddSingleton<IConnectionFactory, ConnectionFactory>(_ =>
+		new ConnectionFactory { HostName = "localhost" });
+	services.AddTransient<IRabbitMqQueueListener, RabbitMqSftpListener>();
+	services.AddTransient<IRabbitMqQueueListener, RabbitMqQueueListener>();
+
+	//-------------
+
 	var app = builder.Build();
 
 	app.UseSerilogRequestLogging();
@@ -82,6 +98,7 @@ try
 	app.MapControllers();
 	app.MapIntegrationMinimalApi(factory);
 	app.MapAdminMinimalApi(factory);
+	app.MapTestMinimalApi(factory);
 
 	Log.Information("Динамический шлюз запущен и готов к эксплуатации.");	
 
