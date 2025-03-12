@@ -1,19 +1,17 @@
-﻿using System.Text;
+﻿using RabbitMQ.Client.Events;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 
 namespace servers_api.services.brokers.bpmintegration
 {
-	public class RabbitMqQueueListener : IRabbitMqQueueListener
+	public class RabbitMqQueueListener : IRabbitMqQueueListener<RabbitMqQueueListener>
 	{
 		private readonly ILogger<RabbitMqQueueListener> _logger;
-		private readonly IConnectionFactory _connectionFactory;
-		private IConnection _connection;
+		private readonly IConnection _connection;
 		private IModel _channel;
 
-		public RabbitMqQueueListener(IConnectionFactory connectionFactory, ILogger<RabbitMqQueueListener> logger)
+		public RabbitMqQueueListener(IRabbitMqService rabbitMqService, ILogger<RabbitMqQueueListener> logger)
 		{
-			_connectionFactory = connectionFactory;
+			_connection = rabbitMqService.CreateConnection(); // Берем соединение из RabbitMqService
 			_logger = logger;
 		}
 
@@ -22,7 +20,6 @@ namespace servers_api.services.brokers.bpmintegration
 			CancellationToken stoppingToken,
 			string pathForSave = null)
 		{
-			_connection = _connectionFactory.CreateConnection();
 			_channel = _connection.CreateModel();
 
 			while (!QueueExists(_channel, queueOutName))
@@ -34,7 +31,7 @@ namespace servers_api.services.brokers.bpmintegration
 			var consumer = new EventingBasicConsumer(_channel);
 			consumer.Received += async (model, ea) =>
 			{
-				var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+				var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
 				_logger.LogInformation("Получено сообщение из {Queue}: {Message}", queueOutName, message);
 				await ProcessMessageAsync(message, queueOutName);
 			};
@@ -75,7 +72,6 @@ namespace servers_api.services.brokers.bpmintegration
 		{
 			_logger.LogInformation("Остановка RabbitMQ слушателя...");
 			_channel?.Close();
-			_connection?.Close();
 		}
 	}
 }

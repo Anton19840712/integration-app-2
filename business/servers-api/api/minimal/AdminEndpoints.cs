@@ -12,9 +12,11 @@ public static class AdminEndpoints
 		ILoggerFactory loggerFactory)
 	{
 		var logger = loggerFactory.CreateLogger("AdminEndpoints");
-
+		
+		// зачитываем известные системе (берем их названия из базы) очереди,
+		// если в них что-то осталось и нам нужно их очистить полностью под какие-то дальнейшие наши задачи
 		app.MapGet("/api/consume", async (
-			IRabbitMqQueueListener queueListener,
+			IRabbitMqQueueListener<RabbitMqQueueListener> queueListener,
 			MongoRepository<QueuesEntity> queuesRepository,
 			CancellationToken stoppingToken) =>
 		{
@@ -51,17 +53,19 @@ public static class AdminEndpoints
 			}
 		});
 
+		// здесь мы получить файлы, сохраненные в очереди под sftp соединение
+		//
 		app.MapGet("/api/consume-sftp", async (
 			string queueSftpName,
 			string pathToSave,
-			RabbitMqSftpListener queueListener,
+			IRabbitMqQueueListener<RabbitMqSftpListener> queueListener,
 			CancellationToken stoppingToken) =>
 		{
 			try
 			{
 				logger.LogInformation("Запуск прослушивания очереди {Queue}", queueSftpName);
 
-				await queueListener.Proce(queueSftpName, stoppingToken);
+				await queueListener.StartListeningAsync(queueSftpName, stoppingToken, pathToSave);
 
 				logger.LogInformation("Процесс получения сообщений из очереди {Queue} завершен.", queueSftpName);
 				return Results.Ok();

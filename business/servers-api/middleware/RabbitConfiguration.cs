@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
+using rabbit_listener;
 using RabbitMQ.Client;
 using Serilog;
 using servers_api.models.configurationsettings;
 using servers_api.queuesconnections;
+using servers_api.services.brokers.bpmintegration;
 
 namespace servers_api.middleware
 {
@@ -51,6 +53,8 @@ namespace servers_api.middleware
 			});
 
 			services.AddSingleton<IRabbitMqService, RabbitMqService>();
+			services.AddSingleton<IRabbitMqQueueListener<RabbitMqQueueListener>, RabbitMqQueueListener>();
+			services.AddSingleton<IRabbitMqQueueListener<RabbitMqSftpListener>, RabbitMqSftpListener>();
 
 			Log.Information("Сервисы, взаимодействующие с сетевой шиной, зарегистрированы.");
 			return services;

@@ -7,17 +7,15 @@ namespace servers_api.messaging.sending;
 
 public class MessageSender : IMessageSender
 {
-	private readonly IRabbitMqQueueListener _rabbitMqQueueListener;
-	private readonly IMessageFormatter _messageFormatter;
+	private readonly IRabbitMqQueueListener<RabbitMqQueueListener> _rabbitMqQueueListener;
 	private readonly ILogger<MessageSender> _logger;
 
 	public MessageSender(
-		IRabbitMqQueueListener rabbitMqQueueListener,
+		IRabbitMqQueueListener<RabbitMqQueueListener> rabbitMqQueueListener,
 		IMessageFormatter messageFormatter,
 		ILogger<MessageSender> logger)
 	{
 		_rabbitMqQueueListener = rabbitMqQueueListener;
-		_messageFormatter = messageFormatter;
 		_logger = logger;
 	}
 

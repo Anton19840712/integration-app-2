@@ -16,7 +16,7 @@ public class TeachIntegrationService(
 	MongoRepository<QueuesEntity> queuesRepository,
 	ITeachSenderHandler teachService,
 	IJsonParsingService jsonParsingService,
-	IRabbitMqQueueListener queueListener,
+	IRabbitMqQueueListener<RabbitMqQueueListener> queueListener,
 	ILogger<TeachIntegrationService> logger) : ITeachIntegrationService
 {
 	public async Task<List<ResponseIntegration>> TeachAsync(

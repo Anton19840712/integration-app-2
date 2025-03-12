@@ -1,10 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
-using Renci.SshNet;
+using RabbitMQ.Client.Events;
 using servers_api.models.configurationsettings;
 using servers_api.services.brokers.bpmintegration;
+using IConnectionFactory = RabbitMQ.Client.IConnectionFactory;
 
 namespace rabbit_listener
 {
@@ -14,93 +16,109 @@ namespace rabbit_listener
 		public string FileExtension { get; set; }
 	}
 
-	public class RabbitMqSftpListener : IRabbitMqQueueListener
+	public class RabbitMqSftpListener : IRabbitMqQueueListener<RabbitMqSftpListener>
 	{
+		private readonly IConnectionFactory _connectionFactory;
 		private readonly ILogger<RabbitMqSftpListener> _logger;
 		private readonly SftpConfig _config;
 		private static readonly ConcurrentDictionary<string, bool> ProcessedFileHashes = new();
-
-		public RabbitMqSftpListener(
-			SftpConfig config,
-			IConnectionFactory connectionFactory,
-			ILogger<RabbitMqSftpListener> logger)
-			: base(connectionFactory, logger)
+		private IConnection _connection;
+		private IModel _channel;
+		private CancellationTokenSource _cts;
+		private Task _listenerTask;
+		private string _pathForSave;
+		private string _queueOutName;
+		public RabbitMqSftpListener(IConnectionFactory connectionFactory, SftpConfig config, ILogger<RabbitMqSftpListener> logger)
 		{
+			_connectionFactory = connectionFactory;
 			_config = config;
 			_logger = logger;
 		}
 
-		public Task StartAsync(CancellationToken cancellationToken)
+		public async Task StartListeningAsync(
+			string queueOutName,
+			CancellationToken cancellationToken,
+			string pathForSave)
 		{
-			return StartListeningAsync("sftp_queue", cancellationToken);
-		}
+			_pathForSave = pathForSave;
+			_queueOutName = queueOutName;
+			_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-		protected override async Task ProcessMessageAsync(string message, string queueName)
-		{
-			try
+
+			// Подключаемся к RabbitMQ
+			_connection = _connectionFactory.CreateConnection();
+			_channel = _connection.CreateModel();
+
+			var consumer = new EventingBasicConsumer(_channel);
+			consumer.Received += async (model, ea) =>
 			{
-				var fileMessage = JsonConvert.DeserializeObject<FileMessage>(message);
-				if (fileMessage == null)
+				try
 				{
-					_logger.LogWarning("Получено некорректное сообщение.");
-					return;
+					var body = ea.Body.ToArray();
+					var jsonMessage = Encoding.UTF8.GetString(body);
+
+					// Десериализуем сообщение
+					var message = JsonConvert.DeserializeObject<FileMessage>(jsonMessage);
+					byte[] fileContent = message.FileContent;
+					string fileExtension = message.FileExtension;
+
+					// Сохраняем файл
+
+					// Проверяем путь для сохранения
+					if (string.IsNullOrEmpty(_pathForSave))
+					{
+						_logger.LogError("Путь для сохранения файлов не задан.");
+						throw new ArgumentNullException("pathForSave", "Путь для сохранения файлов не может быть null или пустым.");
+					}
+
+					// Проверяем расширение файла
+					if (string.IsNullOrEmpty(fileExtension))
+					{
+						_logger.LogError("Расширение файла не задано.");
+						throw new ArgumentNullException("fileExtension", "Расширение файла не может быть null или пустым.");
+					}
+
+					var filePath = Path.Combine(_pathForSave, $"file_{Guid.NewGuid()}{fileExtension}");
+					await File.WriteAllBytesAsync(filePath, fileContent, _cts.Token);
+					_logger.LogInformation($"Файл сохранён: {filePath}");
+
+					// Удаляем хэш из обработанных
+					string fileHash = ComputeFileHash(fileContent);
+					ProcessedFileHashes.TryRemove(fileHash, out _);
+
+					// Подтверждаем сообщение
+					_channel.BasicAck(ea.DeliveryTag, false);
 				}
+				catch (Exception ex)
+				{
+					_logger.LogError(ex, "Ошибка обработки сообщения.");
+					_channel.BasicNack(ea.DeliveryTag, false, true);
+				}
+			};
 
-				byte[] fileContent = fileMessage.FileContent;
-				string fileExtension = fileMessage.FileExtension;
-				string filePath = Path.Combine("C:/Downloads3", $"file_{Guid.NewGuid()}{fileExtension}");
+			_channel.BasicConsume(queueOutName, false, consumer);
 
-				await File.WriteAllBytesAsync(filePath, fileContent);
-				UploadToSftp(filePath);
-
-				string fileHash = ComputeFileHash(fileContent);
-				ProcessedFileHashes.TryRemove(fileHash, out _);
-			}
-			catch (Exception ex)
+			// Работаем до отмены
+			while (!_cts.Token.IsCancellationRequested)
 			{
-				_logger.LogError(ex, "Ошибка обработки файла.");
+				await Task.Delay(1000, _cts.Token);
 			}
+			await Task.CompletedTask;
 		}
 
-		public Task StopAsync(CancellationToken cancellationToken)
+		public void StopListening()
 		{
-			StopListening();
-			return Task.CompletedTask;
+			_logger.LogInformation("Остановка SFTP-слушателя.");
+			_cts?.Cancel();
+			_channel?.Close();
+			_connection?.Close();
 		}
 
 		private static string ComputeFileHash(byte[] fileContent)
 		{
 			using var sha256 = SHA256.Create();
-			return BitConverter.ToString(sha256.ComputeHash(fileContent)).Replace("-", "").ToLower();
-		}
-
-		private void UploadToSftp(string filePath)
-		{
-			try
-			{
-				using var sftpClient = new SftpClient(_config.Host, _config.Port, _config.UserName, _config.Password);
-				sftpClient.Connect();
-				using var fileStream = File.OpenRead(filePath);
-				var remotePath = Path.Combine("/remote/path", Path.GetFileName(filePath));
-				sftpClient.UploadFile(fileStream, remotePath);
-				sftpClient.Disconnect();
-
-				_logger.LogInformation("Файл успешно загружен на SFTP сервер.");
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, "Ошибка при загрузке файла на SFTP.");
-			}
-		}
-
-		public Task StartListeningAsync(string queueOutName, CancellationToken stoppingToken, string pathForSave = null)
-		{
-			throw new NotImplementedException();
-		}
-
-		public void StopListening()
-		{
-			throw new NotImplementedException();
+			byte[] hashBytes = sha256.ComputeHash(fileContent);
+			return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 		}
 	}
 }

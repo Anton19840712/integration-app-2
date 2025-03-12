@@ -83,8 +83,9 @@ try
 	});
 	services.AddSingleton<IConnectionFactory, ConnectionFactory>(_ =>
 		new ConnectionFactory { HostName = "localhost" });
-	services.AddTransient<IRabbitMqQueueListener, RabbitMqSftpListener>();
-	services.AddTransient<IRabbitMqQueueListener, RabbitMqQueueListener>();
+
+	builder.Services.AddScoped<IRabbitMqQueueListener<RabbitMqSftpListener>, RabbitMqSftpListener>();
+	builder.Services.AddScoped<IRabbitMqQueueListener<RabbitMqQueueListener>, RabbitMqQueueListener>();
 
 	//-------------
 
