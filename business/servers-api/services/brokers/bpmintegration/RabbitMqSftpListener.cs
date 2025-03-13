@@ -5,17 +5,12 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using servers_api.models.configurationsettings;
+using servers_api.models.queues;
 using servers_api.services.brokers.bpmintegration;
 using IConnectionFactory = RabbitMQ.Client.IConnectionFactory;
 
 namespace rabbit_listener
 {
-	public class FileMessage
-	{
-		public byte[] FileContent { get; set; }
-		public string FileExtension { get; set; }
-	}
-
 	public class RabbitMqSftpListener : IRabbitMqQueueListener<RabbitMqSftpListener>
 	{
 		private readonly IConnectionFactory _connectionFactory;
@@ -52,48 +47,31 @@ namespace rabbit_listener
 			var consumer = new EventingBasicConsumer(_channel);
 			consumer.Received += async (model, ea) =>
 			{
-				try
-				{
-					var body = ea.Body.ToArray();
-					var jsonMessage = Encoding.UTF8.GetString(body);
 
-					// Десериализуем сообщение
+				var body = ea.Body.ToArray();
+				var jsonMessage = Encoding.UTF8.GetString(body);
+
+				// Десериализуем сообщение
+				
 					var message = JsonConvert.DeserializeObject<FileMessage>(jsonMessage);
+					_logger.LogInformation($"FileName: {message.FileName}");
+
 					byte[] fileContent = message.FileContent;
-					string fileExtension = message.FileExtension;
+					string fileName = message.FileName;
+				
+				
 
-					// Сохраняем файл
+				var filePath = Path.Combine(_pathForSave, fileName);
+				await File.WriteAllBytesAsync(filePath, fileContent, _cts.Token);
+				_logger.LogInformation($"Файл сохранён: {filePath}");
 
-					// Проверяем путь для сохранения
-					if (string.IsNullOrEmpty(_pathForSave))
-					{
-						_logger.LogError("Путь для сохранения файлов не задан.");
-						throw new ArgumentNullException("pathForSave", "Путь для сохранения файлов не может быть null или пустым.");
-					}
+				// Удаляем хэш из обработанных
+				string fileHash = ComputeFileHash(fileContent);
+				ProcessedFileHashes.TryRemove(fileHash, out _);
 
-					// Проверяем расширение файла
-					if (string.IsNullOrEmpty(fileExtension))
-					{
-						_logger.LogError("Расширение файла не задано.");
-						throw new ArgumentNullException("fileExtension", "Расширение файла не может быть null или пустым.");
-					}
+				// Подтверждаем сообщение
+				_channel.BasicAck(ea.DeliveryTag, false);
 
-					var filePath = Path.Combine(_pathForSave, $"file_{Guid.NewGuid()}{fileExtension}");
-					await File.WriteAllBytesAsync(filePath, fileContent, _cts.Token);
-					_logger.LogInformation($"Файл сохранён: {filePath}");
-
-					// Удаляем хэш из обработанных
-					string fileHash = ComputeFileHash(fileContent);
-					ProcessedFileHashes.TryRemove(fileHash, out _);
-
-					// Подтверждаем сообщение
-					_channel.BasicAck(ea.DeliveryTag, false);
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError(ex, "Ошибка обработки сообщения.");
-					_channel.BasicNack(ea.DeliveryTag, false, true);
-				}
 			};
 
 			_channel.BasicConsume(queueOutName, false, consumer);

@@ -58,14 +58,22 @@ public class RabbitMqService : IRabbitMqService
 	}
 
 	// Метод для публикации сообщений
-	public async Task PublishMessageAsync(string queueName, string routingKey, string message)
+	public async Task PublishMessageAsync(
+		string queueName,
+		string routingKey,
+		string message)
 	{
 		await Task.Run(() =>
 		{
 			using var channel = PersistentConnection.CreateModel();
 
 			// Очередь теперь постоянная
-			channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+			channel.QueueDeclare(
+				queue: queueName,
+				durable: true,
+				exclusive: false,
+				autoDelete: false,
+				arguments: null);
 
 			var body = Encoding.UTF8.GetBytes(message);
 
