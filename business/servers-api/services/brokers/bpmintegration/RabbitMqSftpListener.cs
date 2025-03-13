@@ -1,9 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Renci.SshNet;
 using servers_api.models.configurationsettings;
 using servers_api.models.queues;
 using servers_api.services.brokers.bpmintegration;
@@ -13,76 +15,61 @@ namespace rabbit_listener
 {
 	public class RabbitMqSftpListener : IRabbitMqQueueListener<RabbitMqSftpListener>
 	{
+		private readonly SftpSettings _sftpSettings;
 		private readonly IConnectionFactory _connectionFactory;
 		private readonly ILogger<RabbitMqSftpListener> _logger;
-		private readonly SftpConfig _config;
 		private static readonly ConcurrentDictionary<string, bool> ProcessedFileHashes = new();
 		private IConnection _connection;
 		private IModel _channel;
 		private CancellationTokenSource _cts;
-		private Task _listenerTask;
 		private string _pathForSave;
-		private string _queueOutName;
-		public RabbitMqSftpListener(IConnectionFactory connectionFactory, SftpConfig config, ILogger<RabbitMqSftpListener> logger)
+		public RabbitMqSftpListener(
+			IConnectionFactory connectionFactory,
+			IOptions<SftpSettings> ssftpSettings,
+			ILogger<RabbitMqSftpListener> logger)
 		{
 			_connectionFactory = connectionFactory;
-			_config = config;
+			_sftpSettings = ssftpSettings.Value;
 			_logger = logger;
 		}
 
-		public async Task StartListeningAsync(
-			string queueOutName,
-			CancellationToken cancellationToken,
-			string pathForSave)
+		public async Task StartListeningAsync(string queueOutName, CancellationToken cancellationToken, string pathForSave)
 		{
 			_pathForSave = pathForSave;
-			_queueOutName = queueOutName;
 			_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-
-			// Подключаемся к RabbitMQ
 			_connection = _connectionFactory.CreateConnection();
 			_channel = _connection.CreateModel();
 
 			var consumer = new EventingBasicConsumer(_channel);
 			consumer.Received += async (model, ea) =>
 			{
-
 				var body = ea.Body.ToArray();
 				var jsonMessage = Encoding.UTF8.GetString(body);
+				var message = JsonConvert.DeserializeObject<FileMessage>(jsonMessage);
+				_logger.LogInformation($"FileName: {message.FileName}");
 
-				// Десериализуем сообщение
-				
-					var message = JsonConvert.DeserializeObject<FileMessage>(jsonMessage);
-					_logger.LogInformation($"FileName: {message.FileName}");
-
-					byte[] fileContent = message.FileContent;
-					string fileName = message.FileName;
-				
-				
-
+				byte[] fileContent = message.FileContent;
+				string fileName = message.FileName;
 				var filePath = Path.Combine(_pathForSave, fileName);
+
 				await File.WriteAllBytesAsync(filePath, fileContent, _cts.Token);
+
+				UploadFileToSftp(filePath);
 				_logger.LogInformation($"Файл сохранён: {filePath}");
 
-				// Удаляем хэш из обработанных
 				string fileHash = ComputeFileHash(fileContent);
 				ProcessedFileHashes.TryRemove(fileHash, out _);
 
-				// Подтверждаем сообщение
 				_channel.BasicAck(ea.DeliveryTag, false);
-
 			};
 
 			_channel.BasicConsume(queueOutName, false, consumer);
 
-			// Работаем до отмены
-			while (!_cts.Token.IsCancellationRequested)
-			{
-				await Task.Delay(1000, _cts.Token);
-			}
+			_logger.LogInformation($"Начал слушать очередь: {queueOutName}");
 			await Task.CompletedTask;
 		}
+
 
 		public void StopListening()
 		{
@@ -97,6 +84,35 @@ namespace rabbit_listener
 			using var sha256 = SHA256.Create();
 			byte[] hashBytes = sha256.ComputeHash(fileContent);
 			return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+		}
+		private void UploadFileToSftp(string filePath)
+		{
+			try
+			{
+				using (var sftpClient = new SftpClient(
+					_sftpSettings.Host,
+					_sftpSettings.Port,
+					_sftpSettings.UserName,
+					_sftpSettings.Password))
+				{
+					sftpClient.Connect();
+
+					var fileName = Path.GetFileName(filePath);
+					var remoteFilePath = fileName;
+
+					using (var fileStream = File.OpenRead(filePath))
+					{
+						sftpClient.UploadFile(fileStream, remoteFilePath);
+						_logger.LogInformation("Файл '{FileName}' успешно загружен в '{RemoteFilePath}'", fileName, remoteFilePath);
+					}
+
+					sftpClient.Disconnect();
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Ошибка при загрузке файла на SFTP.");
+			}
 		}
 	}
 }

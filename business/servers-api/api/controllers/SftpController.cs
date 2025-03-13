@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Renci.SshNet;
 using servers_api.api.controllers;
+using servers_api.models.configurationsettings;
 using System.Security.Cryptography;
 
 public class SftpController : ControllerBase
@@ -8,29 +11,17 @@ public class SftpController : ControllerBase
 	private readonly IRabbitMqService _rabbitMqService;
 	private readonly ILogger<SftpController> _logger;
 	private readonly FileHashService _fileHashService;
-
 	public SftpController(
 		IRabbitMqService rabbitMqService,
 		ILogger<SftpController> logger,
-		FileHashService fileHashService)
+		FileHashService fileHashService,
+		IOptions<SftpSettings> sftpSettings)
 	{
 		_rabbitMqService = rabbitMqService;
 		_logger = logger;
 		_fileHashService = fileHashService;
 	}
 
-	/// <summary>
-	/// Эндпоинт занимается отсылкой файла через рест запрос в очередь.
-	/// </summary>
-	/// <param name="file"></param>
-	/// <param name="queueName"></param>
-	/// <returns></returns>
-	/// <summary>
-	/// Эндпоинт занимается отсылкой файла через рест запрос в очередь.
-	/// </summary>
-	/// <param name="file">Загружаемый файл.</param>
-	/// <param name="queueName">Название очереди.</param>
-	/// <returns></returns>
 	[HttpPost("upload/{queueName}")]
 	public async Task<IActionResult> UploadFile(IFormFile file, string queueName)
 	{
@@ -80,12 +71,6 @@ public class SftpController : ControllerBase
 			return StatusCode(500, "Произошла ошибка при обработке файла.");
 		}
 	}
-
-	/// <summary>
-	/// Вычисляет хеш файла с использованием алгоритма SHA256.
-	/// </summary>
-	/// <param name="fileContent">Содержимое файла в байтах.</param>
-	/// <returns>Хеш файла в строковом представлении.</returns>
 	private static string ComputeFileHash(byte[] fileContent)
 	{
 		using var sha256 = SHA256.Create();

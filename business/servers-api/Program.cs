@@ -74,13 +74,10 @@ try
 
 	services.AddTransient<FileHashService>();
 
-	services.AddSingleton<SftpConfig>(new SftpConfig
-	{
-		Host = "192.168.100.3",
-		Port = 22,
-		UserName = "tester",
-		Password = "password"
-	});
+	// Регистрация конфигурации SftpSettings
+	builder.Services.Configure<SftpSettings>(builder.Configuration.GetSection("SftpSettings"));
+
+
 	services.AddSingleton<IConnectionFactory, ConnectionFactory>(_ =>
 		new ConnectionFactory { HostName = "localhost" });
 
