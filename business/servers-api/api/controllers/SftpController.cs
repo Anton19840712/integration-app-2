@@ -19,11 +19,22 @@ public class SftpController : ControllerBase
 		_fileHashService = fileHashService;
 	}
 
-	[HttpPost("upload")]
-	public async Task<IActionResult> UploadFile(IFormFile file)
+	/// <summary>
+	/// Эндпоинт занимается отсылкой файла через рест запрос в очередь.
+	/// </summary>
+	/// <param name="file"></param>
+	/// <param name="queueName"></param>
+	/// <returns></returns>
+	[HttpPost("upload/{queueName}")]
+	public async Task<IActionResult> UploadFile(IFormFile file, string queueName)
 	{
 		try
 		{
+			if (string.IsNullOrWhiteSpace(queueName))
+			{
+				return BadRequest("Название очереди не может быть пустым.");
+			}
+
 			using var stream = new MemoryStream();
 			await file.CopyToAsync(stream);
 			byte[] fileContent = stream.ToArray();
@@ -46,9 +57,9 @@ public class SftpController : ControllerBase
 			};
 
 			string jsonMessage = JsonConvert.SerializeObject(message);
-			await _rabbitMqService.PublishMessageAsync("sftp_queue", "sftp_queue", jsonMessage);
+			await _rabbitMqService.PublishMessageAsync(queueName, queueName, jsonMessage);
 
-			return Ok("Файл успешно загружен и передан на обработку.");
+			return Ok($"Файл успешно загружен и передан в очередь '{queueName}'.");
 		}
 		catch (Exception ex)
 		{

@@ -54,7 +54,8 @@ public static class AdminEndpoints
 		});
 
 		// здесь мы получить файлы, сохраненные в очереди под sftp соединение
-		//
+		// данные файлы не потребляются на стороне bpm они засылаются в очередь
+		// так же файлы паралелльно шлются в sftp server
 		app.MapGet("/api/consume-sftp", async (
 			string queueSftpName,
 			string pathToSave,
