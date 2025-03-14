@@ -45,10 +45,20 @@ class Program
 		byte[] buffer = new byte[1024];
 		Console.WriteLine("Клиент подключен");
 
+		// Периодическая проверка соединения
+		var pingInterval = TimeSpan.FromSeconds(5); // Интервал для проверки
+		var lastPingTime = DateTime.Now;
+
 		try
 		{
 			while (webSocket.State == WebSocketState.Open)
 			{
+				if ((DateTime.Now - lastPingTime) > pingInterval)
+				{
+					Console.WriteLine("Проверка состояния соединения: соединение активно.");
+					lastPingTime = DateTime.Now; // Обновляем время последней проверки
+				}
+
 				var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 				if (result.MessageType == WebSocketMessageType.Close)
 				{
@@ -56,15 +66,17 @@ class Program
 					await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие соединения", CancellationToken.None);
 					break;
 				}
+				else
+				{
+					string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+					Console.WriteLine($"Получено сообщение от клиента: {message}");
 
-				string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-				Console.WriteLine($"Получено сообщение от клиента: {message}");
-
-				// Пример ответа
-				string responseMessage = $"Принято: {message}";
-				byte[] responseBytes = Encoding.UTF8.GetBytes(responseMessage);
-				await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
-				Console.WriteLine($"Отправлен ответ: {responseMessage}");
+					// Пример ответа
+					string responseMessage = $"Принято: {message}";
+					byte[] responseBytes = Encoding.UTF8.GetBytes(responseMessage);
+					await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+					Console.WriteLine($"Отправлен ответ: {responseMessage}");
+				}
 			}
 		}
 		catch (Exception ex)

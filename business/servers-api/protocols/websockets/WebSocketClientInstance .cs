@@ -1,6 +1,5 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
-using Microsoft.Extensions.Logging;
 using servers_api.factory;
 using servers_api.models.internallayer.instance;
 using servers_api.models.response;
@@ -14,6 +13,7 @@ public class WebSocketClientInstance : IUpClient
 	{
 		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 	}
+
 	public async Task<ResponseIntegration> ConnectToServerAsync(ClientInstanceModel instanceModel, string serverHost, int serverPort, CancellationToken cancellationToken)
 	{
 		_logger.LogInformation("Запуск WebSocket клиента...");
@@ -46,11 +46,19 @@ public class WebSocketClientInstance : IUpClient
 	private async Task ReceiveMessagesAsync(CancellationToken token)
 	{
 		byte[] buffer = new byte[1024];
+		var pingInterval = TimeSpan.FromSeconds(5); // Интервал для проверки соединения
+		var lastPingTime = DateTime.Now;
 
 		try
 		{
 			while (!token.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
 			{
+				if ((DateTime.Now - lastPingTime) > pingInterval)
+				{
+					_logger.LogInformation("Проверка состояния соединения: соединение активно.");
+					lastPingTime = DateTime.Now;
+				}
+
 				var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
 				if (result.MessageType == WebSocketMessageType.Close)
 				{
