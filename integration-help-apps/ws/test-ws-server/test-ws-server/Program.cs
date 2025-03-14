@@ -45,18 +45,19 @@ class Program
 		byte[] buffer = new byte[1024];
 		Console.WriteLine("Клиент подключен");
 
-		// Периодическая проверка соединения
-		var pingInterval = TimeSpan.FromSeconds(5); // Интервал для проверки
+		var pingInterval = TimeSpan.FromSeconds(5); // Интервал для пинга
 		var lastPingTime = DateTime.Now;
 
 		try
 		{
 			while (webSocket.State == WebSocketState.Open)
 			{
+				// Отправка пинга раз в 5 секунд
 				if ((DateTime.Now - lastPingTime) > pingInterval)
 				{
-					Console.WriteLine("Проверка состояния соединения: соединение активно.");
-					lastPingTime = DateTime.Now; // Обновляем время последней проверки
+					Console.WriteLine("Отправка пинга клиенту");
+					await SendPingAsync(webSocket);
+					lastPingTime = DateTime.Now; // Обновляем время последнего пинга
 				}
 
 				var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
@@ -87,6 +88,20 @@ class Program
 		{
 			Console.WriteLine("Закрытие WebSocket-соединения");
 			await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Сервер завершает соединение", CancellationToken.None);
+		}
+	}
+
+	private static async Task SendPingAsync(WebSocket webSocket)
+	{
+		try
+		{
+			byte[] pingMessage = Encoding.UTF8.GetBytes("Ping");
+			await webSocket.SendAsync(new ArraySegment<byte>(pingMessage), WebSocketMessageType.Text, true, CancellationToken.None);
+			Console.WriteLine("Пинг отправлен клиенту");
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Ошибка при отправке пинга: {ex.Message}");
 		}
 	}
 }

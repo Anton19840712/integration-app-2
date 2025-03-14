@@ -46,19 +46,11 @@ public class WebSocketClientInstance : IUpClient
 	private async Task ReceiveMessagesAsync(CancellationToken token)
 	{
 		byte[] buffer = new byte[1024];
-		var pingInterval = TimeSpan.FromSeconds(5); // Интервал для проверки соединения
-		var lastPingTime = DateTime.Now;
 
 		try
 		{
 			while (!token.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
 			{
-				if ((DateTime.Now - lastPingTime) > pingInterval)
-				{
-					_logger.LogInformation("Проверка состояния соединения: соединение активно.");
-					lastPingTime = DateTime.Now;
-				}
-
 				var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
 				if (result.MessageType == WebSocketMessageType.Close)
 				{
@@ -67,7 +59,15 @@ public class WebSocketClientInstance : IUpClient
 				}
 
 				string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-				_logger.LogInformation("Получено сообщение: {Message}", message);
+				if (message == "Ping")
+				{
+					_logger.LogInformation("Получен пинг от сервера. Отправляю ответ.");
+					await SendPongAsync(); // Отправляем ответ на пинг
+				}
+				else
+				{
+					_logger.LogInformation("Получено сообщение: {Message}", message);
+				}
 			}
 		}
 		catch (OperationCanceledException)
@@ -80,12 +80,17 @@ public class WebSocketClientInstance : IUpClient
 		}
 	}
 
-	public async Task CloseConnectionAsync()
+	private async Task SendPongAsync()
 	{
-		if (_webSocket?.State == WebSocketState.Open)
+		try
 		{
-			await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие соединения", CancellationToken.None);
-			_logger.LogInformation("WebSocket-соединение закрыто.");
+			byte[] pongMessage = Encoding.UTF8.GetBytes("Pong");
+			await _webSocket.SendAsync(new ArraySegment<byte>(pongMessage), WebSocketMessageType.Text, true, CancellationToken.None);
+			_logger.LogInformation("Отправлен ответ 'Pong' на пинг.");
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError($"Ошибка при отправке 'Pong': {ex.Message}");
 		}
 	}
 }
