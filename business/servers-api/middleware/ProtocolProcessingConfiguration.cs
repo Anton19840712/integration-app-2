@@ -4,6 +4,7 @@ using servers_api.main.services;
 using servers_api.protocols.http;
 using servers_api.protocols.tcp;
 using servers_api.protocols.udp;
+using servers_api.protocols.websockets;
 
 namespace servers_api.middleware;
 
@@ -28,10 +29,15 @@ static class ProtocolProcessingConfiguration
 
 		services.AddTransient<IUpClient, HttpClientInstance>();
 
+		services.AddTransient<WebSocketClientInstance>();
+		services.AddTransient<WebSocketServerInstance>();
+
+
 		// Регистрируем фабрики с областью жизни Scoped
 		services.AddScoped<TcpFactory>();
 		services.AddScoped<UdpFactory>();
 		services.AddSingleton<HttpFactory>();
+		services.AddScoped<WebSocketFactory>();
 
 		// Регистрируем словарь с фабриками как Singleton
 		services.AddSingleton(provider =>
@@ -40,7 +46,8 @@ static class ProtocolProcessingConfiguration
 			{
 				{ "tcp", provider.GetRequiredService<TcpFactory>() },
 				{ "udp", provider.GetRequiredService<UdpFactory>() },
-				{ "http", provider.GetRequiredService<HttpFactory>() }
+				{ "http", provider.GetRequiredService<HttpFactory>() },
+				{ "ws", provider.GetRequiredService<WebSocketFactory>() }
 			};
 		});
 
