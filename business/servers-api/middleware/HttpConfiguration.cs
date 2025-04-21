@@ -1,21 +1,16 @@
-﻿using Serilog;
-
-namespace servers_api.middleware;
-
-/// <summary>
-/// Класс для регистрации различных http сервисов.
-/// </summary>
-static class HttpConfiguration
+﻿namespace servers_api.middleware
 {
-	public static IServiceCollection AddHttpServices(this IServiceCollection services)
+	/// <summary>
+	/// Класс для регистрации различных http сервисов.
+	/// </summary>
+	static class HttpConfiguration
 	{
-		Log.Information("Регистрация http сервисов...");
+		public static IServiceCollection AddHttpServices(this IServiceCollection services)
+		{
+			services.AddHttpClient();
+			services.AddHttpContextAccessor();
 
-		services.AddHttpClient();
-		services.AddHttpContextAccessor();
-
-		Log.Information("Http сервисы зарегистрированы.");
-
-		return services;
+			return services;
+		}
 	}
 }

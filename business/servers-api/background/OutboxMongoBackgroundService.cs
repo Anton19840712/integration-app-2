@@ -19,10 +19,11 @@ public class OutboxMongoBackgroundService : BackgroundService
 
 	protected override async Task ExecuteAsync(CancellationToken token)
 	{
-		_logger.LogInformation("Фоновый процесс по обработке сообщений из outbox table запущен.");
+		_logger.LogInformation("OutboxMongoBackgroundService: фоновый процесс по сканированию и отправке сообщений из outbox table запущен.");
 
 		//Параллельно запускаем фоновую очистку старых сообщений
 		_ = Task.Run(() => CleanupOldMessagesAsync(token), token);
+		_logger.LogInformation("OutboxMongoBackgroundService: фоновый процесс по ликвидации отправленных сообщений из outbox table запущен.");
 
 		while (!token.IsCancellationRequested)
 		{
@@ -32,7 +33,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 
 				foreach (var message in messages)
 				{
-					_logger.LogInformation($"Публикация сообщения: {message.Payload}.");
+					_logger.LogInformation($"Публикация сообщения: {message.Payload}");
 
 					await _rabbitMqService.PublishMessageAsync(
 						message.InQueue,
@@ -41,7 +42,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 
 					await _outboxRepository.MarkMessageAsProcessedAsync(message.Id);
 
-					_logger.LogInformation($"Обработано в Outbox: {message.Payload}.");
+					_logger.LogInformation($"Обработано в Outbox: {message.Payload}");
 				}
 			}
 			catch (Exception ex)

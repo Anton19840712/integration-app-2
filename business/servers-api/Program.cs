@@ -1,105 +1,31 @@
-using Microsoft.Extensions.Options;
-using MongoDB.Driver;
-using rabbit_listener;
-using RabbitMQ.Client;
 using Serilog;
-using servers_api.api.controllers;
-using servers_api.api.minimal;
+using servers_api.api.streaming.clients;
+using servers_api.api.streaming.core;
+using servers_api.api.streaming.servers;
+using servers_api.messaging.sending.abstractions;
 using servers_api.middleware;
-using servers_api.models.configurationsettings;
-using servers_api.models.entities;
-using servers_api.models.outbox;
-using servers_api.repositories;
-using servers_api.services.brokers.bpmintegration;
 
 Console.Title = "integration api";
 
 var builder = WebApplication.CreateBuilder(args);
-var cts = new CancellationTokenSource();
 
-// Настройка логирования
-builder.Host.UseSerilog((ctx, cfg) =>
-{
-cfg.MinimumLevel.Information()
-   .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
-   .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-   .Enrich.FromLogContext();
-});
+LoggingConfiguration.ConfigureLogging(builder);
+
+ConfigureServices(builder);
+
+
+var app = builder.Build();
 
 try
 {
-	var services = builder.Services;
-	var configuration = builder.Configuration;
+	// Настройка динамического шлюза (через зарегистрированный сервис)
+	var gateConfigurator = app.Services.GetRequiredService<GateConfiguration>();
+	var (httpUrl, httpsUrl) = await gateConfigurator.ConfigureDynamicGateAsync(args, builder);
 
-	services.AddControllers();
+	// Применяем настройки приложения
+	ConfigureApp(app, httpUrl, httpsUrl);
 
-	services.AddCommonServices();
-	services.AddHttpServices();
-	services.AddFactoryServices();
-	services.AddApiServices();
-	services.AddRabbitMqServices(configuration);
-	services.AddMessageServingServices();
-	services.AddMongoDbServices(configuration);
-	services.AddAutoMapper(typeof(MappingProfile));
-	services.AddOutboxServices();
-	services.AddValidationServices();
-
-	//-------------
-
-	services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
-
-	// Разбор зависимостей для репозиториев:
-	builder.Services.AddTransient<IMongoRepository<QueuesEntity>, MongoRepository<QueuesEntity>>();
-	builder.Services.AddTransient<IMongoRepository<OutboxMessage>, MongoRepository<OutboxMessage>>();
-	builder.Services.AddTransient<IMongoRepository<IncidentEntity>, MongoRepository<IncidentEntity>>();
-
-	services.AddSingleton<MongoRepository<OutboxMessage>>();
-	services.AddSingleton<MongoRepository<QueuesEntity>>();
-	services.AddSingleton<MongoRepository<IncidentEntity>>();
-
-	services.AddHostedService<QueueListenerBackgroundService>();
-
-	builder.Services.AddSingleton<IMongoClient>(sp =>
-	{
-		var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
-		return new MongoClient(settings.ConnectionString);
-	});
-
-	builder.Services.AddSingleton<IMongoDatabase>(sp =>
-	{
-		var mongoClient = sp.GetRequiredService<IMongoClient>();
-		var databaseName = builder.Configuration["MongoDbSettings:DatabaseName"];
-		return mongoClient.GetDatabase(databaseName);
-	});
-
-	services.AddTransient<FileHashService>();
-
-	// Регистрация конфигурации SftpSettings
-	builder.Services.Configure<SftpSettings>(builder.Configuration.GetSection("SftpSettings"));
-
-
-	services.AddSingleton<IConnectionFactory, ConnectionFactory>(_ =>
-		new ConnectionFactory { HostName = "localhost" });
-
-	builder.Services.AddScoped<IRabbitMqQueueListener<RabbitMqSftpListener>, RabbitMqSftpListener>();
-	builder.Services.AddScoped<IRabbitMqQueueListener<RabbitMqQueueListener>, RabbitMqQueueListener>();
-
-	//-------------
-
-	var app = builder.Build();
-
-	app.UseSerilogRequestLogging();
-	app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-
-	var factory = app.Services.GetRequiredService<ILoggerFactory>();
-
-	app.MapControllers();
-	app.MapIntegrationMinimalApi(factory);
-	app.MapAdminMinimalApi(factory);
-	app.MapTestMinimalApi(factory);
-
-	Log.Information("Динамический шлюз запущен и готов к эксплуатации.");	
-
+	// Запускаем
 	await app.RunAsync();
 }
 catch (Exception ex)
@@ -109,7 +35,61 @@ catch (Exception ex)
 }
 finally
 {
-	cts.Cancel();
-	cts.Dispose();
 	Log.CloseAndFlush();
+}
+
+static void ConfigureServices(WebApplicationBuilder builder)
+{
+	
+	var configuration = builder.Configuration;
+
+	var services = builder.Services;
+	services.AddSingleton<INetworkServer, TcpNetworkServer>();
+	services.AddSingleton<INetworkClient, TcpNetworkClient>();
+
+	services.AddSingleton<INetworkServer, UdpNetworkServer>();
+	services.AddSingleton<INetworkClient, UdpNetworkClient>();
+
+	services.AddSingleton<INetworkServer, WebSocketNetworkServer>();
+	services.AddSingleton<INetworkClient, WebSocketNetworkClient>();
+
+	services.AddSingleton<NetworkServerManager>();
+	services.AddSingleton<NetworkClientManager>();
+
+	services.AddHostedService<NetworkServerHostedService>();
+	services.AddScoped<ConnectionMessageSenderFactory>();
+
+	services.AddControllers();
+	services.AddAutoMapper(typeof(MappingProfile));
+
+	services.AddCommonServices();
+	services.AddHttpServices();
+	services.AddFactoryServices();
+	services.AddRabbitMqServices(configuration);
+	services.AddMessageServingServices();
+	services.AddMongoDbServices(configuration);
+	services.AddMongoDbRepositoriesServices(configuration);
+	services.AddValidationServices();
+	services.AddHostedServices();
+	services.AddSftpServices(configuration);
+	services.AddHeadersServices();
+
+	// Регистрируем GateConfiguration
+	services.AddSingleton<GateConfiguration>();
+}
+
+static void ConfigureApp(WebApplication app, string httpUrl, string httpsUrl)
+{
+	app.Urls.Add(httpUrl);
+	app.Urls.Add(httpsUrl);
+	Log.Information($"Middleware: динамический шлюз запущен и принимает запросы на следующих точках: {httpUrl} и {httpsUrl}");
+
+	app.UseSerilogRequestLogging();
+
+	app.UseCors(cors => cors
+		.AllowAnyOrigin()
+		.AllowAnyMethod()
+		.AllowAnyHeader());
+
+	app.MapControllers();
 }
