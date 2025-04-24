@@ -106,7 +106,7 @@ public class GateConfiguration
 	{
 		try
 		{
-			var basePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+			var basePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", ".."));
 			var fullPath = Path.GetFullPath(configFilePath, basePath);
 			var fileName = Path.GetFileName(fullPath);
 
