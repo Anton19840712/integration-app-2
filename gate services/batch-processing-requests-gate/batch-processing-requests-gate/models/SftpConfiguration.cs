@@ -1,8 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Renci.SshNet;
-using sftp_dynamic_gate_app.models;
-using sftp_dynamic_gate_app.services.sftp;
+﻿using sftp_dynamic_gate_app.services.sftp;
 
 namespace sftp_dynamic_gate_app.models
 {
