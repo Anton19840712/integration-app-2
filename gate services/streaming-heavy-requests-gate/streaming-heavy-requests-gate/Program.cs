@@ -3,7 +3,10 @@ using rtsp_dynamic_gate_app.middleware;
 using rtsp_dynamic_gate_app.models;
 using Serilog;
 
-Console.Title = "rtsp-instance";
+//предполагается, что приложение реализовано для обслуживания тяжелых и быстрых запросов. Highload.
+//в нем будет нужно развивать все протоколы, которые будут принимать большое количество тяжелых rps.
+
+Console.Title = "highload-rtsp-requests-gate";
 
 var builder = WebApplication.CreateBuilder(args);
 

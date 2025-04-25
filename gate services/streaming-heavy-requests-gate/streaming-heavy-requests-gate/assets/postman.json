@@ -1,3 +1,4 @@
+// для импортирования в постман для совершения запросов.
 {
 	"info": {
 		"name": "RtspStreamProxy API",
@@ -15,9 +16,9 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{baseUrl}}/api/stream/start/{{channel}}?streamType={{streamType}}",
+					"raw": "{{baseUrl}}/api/rtsp/start/{{channel}}?streamType={{streamType}}",
 					"host": [ "{{baseUrl}}" ],
-					"path": [ "api", "stream", "start", "{{channel}}" ],
+					"path": [ "api", "rtsp", "start", "{{channel}}" ],
 					"query": [
 						{
 							"key": "streamType",
@@ -37,9 +38,9 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{baseUrl}}/api/stream/stop/{{channel}}",
+					"raw": "{{baseUrl}}/api/rtsp/stop/{{channel}}",
 					"host": [ "{{baseUrl}}" ],
-					"path": [ "api", "stream", "stop", "{{channel}}" ]
+					"path": [ "api", "rtsp", "stop", "{{channel}}" ]
 				}
 			},
 			"response": []
@@ -53,9 +54,9 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{baseUrl}}/api/stream/stop-all",
+					"raw": "{{baseUrl}}/api/rtsp/stop-all",
 					"host": [ "{{baseUrl}}" ],
-					"path": [ "api", "stream", "stop", "{{channel}}" ]
+					"path": [ "api", "rtsp", "stop", "{{channel}}" ]
 				}
 			},
 			"response": []
@@ -69,9 +70,9 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{baseUrl}}/api/stream/status/{{channel}}",
+					"raw": "{{baseUrl}}/api/rtsp/status/{{channel}}",
 					"host": [ "{{baseUrl}}" ],
-					"path": [ "api", "stream", "status", "{{channel}}" ]
+					"path": [ "api", "rtsp", "status", "{{channel}}" ]
 				}
 			},
 			"response": []

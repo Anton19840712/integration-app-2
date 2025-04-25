@@ -5,12 +5,12 @@ namespace rtsp_dynamic_gate_app.controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class StreamController : ControllerBase
+	public class RtspController : ControllerBase
 	{
 		private readonly RtspStreamingService _streamingService;
-		private readonly ILogger<StreamController> _logger;
+		private readonly ILogger<RtspController> _logger;
 
-		public StreamController(RtspStreamingService streamingService, ILogger<StreamController> logger)
+		public RtspController(RtspStreamingService streamingService, ILogger<RtspController> logger)
 		{
 			_streamingService = streamingService;
 			_logger = logger;
