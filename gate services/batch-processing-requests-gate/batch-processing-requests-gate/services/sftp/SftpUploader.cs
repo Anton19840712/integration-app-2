@@ -7,26 +7,27 @@ public class SftpUploader : ISftpUploader
 {
 	private readonly SftpSettings _settings;
 	private readonly ILogger<SftpUploader> _logger;
-	private readonly SftpClient _client;
 
 	public SftpUploader(IOptions<SftpSettings> options, ILogger<SftpUploader> logger)
 	{
 		_settings = options.Value;
 		_logger = logger;
-		_client = new SftpClient(
-				_settings.Host,
-				_settings.Port,
-				_settings.UserName,
-				_settings.Password);
 	}
 
 	public async Task UploadAsync(string localFilePath, string remoteFileName = null)
 	{
 		try
 		{
-			_client.Connect();
+			// Оборачиваем SftpClient в using для автоматического вызова Dispose
+			using var client = new SftpClient(
+				_settings.Host,
+				_settings.Port,
+				_settings.UserName,
+				_settings.Password);
 
-			if (!_client.IsConnected)
+			client.Connect();
+
+			if (!client.IsConnected)
 				throw new Exception("Не удалось подключиться к SFTP");
 
 			string fileName = remoteFileName ?? Path.GetFileName(localFilePath);
@@ -34,8 +35,9 @@ public class SftpUploader : ISftpUploader
 				? _settings.Source + fileName
 				: _settings.Source + "/" + fileName;
 
+			// Загружаем файл с локального пути
 			await using var fileStream = File.OpenRead(localFilePath);
-			_client.UploadFile(fileStream, remoteFullPath);
+			client.UploadFile(fileStream, remoteFullPath);
 
 			_logger.LogInformation("Файл '{FileName}' успешно загружен в SFTP в папку '{RemotePath}'", fileName, _settings.Source);
 		}
