@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "quick-light-requests-gate", "quick-light-requests-gate\quick-light-requests-gate.csproj", "{282AA771-6998-4336-B9F2-873FF45E4E0F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{282AA771-6998-4336-B9F2-873FF45E4E0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{282AA771-6998-4336-B9F2-873FF45E4E0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{282AA771-6998-4336-B9F2-873FF45E4E0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{282AA771-6998-4336-B9F2-873FF45E4E0F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F6013F92-9803-4338-82F2-B55E8C033B3A}
+	EndGlobalSection
+EndGlobal
