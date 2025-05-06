@@ -1,6 +1,4 @@
-﻿
-
-namespace servers_api.api.streaming.clients
+﻿namespace servers_api.api.streaming.clients
 {
 	public interface INetworkClient
 	{

@@ -3,12 +3,12 @@ using repositories;
 
 public class OutboxMongoBackgroundService : BackgroundService
 {
-	private readonly MongoRepository<OutboxMessage> _outboxRepository;
+	private readonly IMongoRepository<OutboxMessage> _outboxRepository;
 	private readonly IRabbitMqService _rabbitMqService;
 	private readonly ILogger<OutboxMongoBackgroundService> _logger;
 
 	public OutboxMongoBackgroundService(
-		MongoRepository<OutboxMessage> outboxRepository,
+		IMongoRepository<OutboxMessage> outboxRepository,
 		IRabbitMqService rabbitMqService,
 		ILogger<OutboxMongoBackgroundService> logger)
 	{

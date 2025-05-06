@@ -23,12 +23,30 @@ namespace listenersrabbit
 		{
 			_channel = _connection.CreateModel();
 
-			while (!QueueExists(_channel, queueOutName))
+			const int maxAttempts = 5;
+			int attempt = 0;
+
+			// Пытаемся найти очередь 4 раза, если не нашли, то создаем на 5-й попытке
+			while (attempt < maxAttempts)
 			{
-				_logger.LogWarning("Очередь {Queue} не найдена. Ожидание...", queueOutName);
-				await Task.Delay(1000, stoppingToken);
+				attempt++;
+
+				_logger.LogWarning("Очередь {Queue} из базы не найдена. Попытка {Attempt}/{MaxAttempts}", queueOutName, attempt, maxAttempts);
+
+				if (attempt < maxAttempts)
+				{
+					// Ждем перед следующей попыткой, если попытки еще не исчерпаны
+					await Task.Delay(1000, stoppingToken);
+				}
+				else
+				{
+					// На 5-й попытке создаем очередь
+					_logger.LogWarning("Очередь {Queue} из базы не найдена после {MaxAttempts} попыток. Пробую создать очередь и подключиться.", queueOutName, maxAttempts);
+					CreateQueue(queueOutName);
+				}
 			}
 
+			// Теперь подключаемся к очереди (после того, как очередь создана)
 			var consumer = new EventingBasicConsumer(_channel);
 
 			consumer.Received += async (model, ea) =>
@@ -66,17 +84,22 @@ namespace listenersrabbit
 			return Task.CompletedTask;
 		}
 
-		private bool QueueExists(IModel channel, string queueName)
+		private void CreateQueue(string queueName)
 		{
-			try
+			if (_channel == null || !_channel.IsOpen)
 			{
-				channel.QueueDeclarePassive(queueName);
-				return true;
+				_logger.LogWarning("Канал RabbitMQ закрыт. Пересоздаю канал перед созданием очереди...");
+				_channel = _connection.CreateModel();
 			}
-			catch
-			{
-				return false;
-			}
+
+			_logger.LogInformation("Создание очереди {Queue}", queueName);
+
+			_channel.QueueDeclare(
+				queue: queueName,
+				durable: true,
+				exclusive: false,
+				autoDelete: false,
+				arguments: null);
 		}
 
 		public void StopListening()
