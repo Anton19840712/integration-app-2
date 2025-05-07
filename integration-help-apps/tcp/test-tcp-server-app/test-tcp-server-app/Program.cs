@@ -10,7 +10,7 @@ class Program
 
 	static async Task Main()
 	{
-		Console.Title = "outside tcp server";
+		Console.Title = "outside tcp server simulation";
 		var listener = new TcpListener(IPAddress.Any, Port);
 		listener.Start();
 		Console.WriteLine($"Сервер запущен на порту {Port}");
@@ -49,6 +49,8 @@ class Program
 					Console.WriteLine($"Отправлено сообщение номер {messageCount}");
 
 					messageCount++;
+					Console.WriteLine($"TCP server is running: {Port} - {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+
 					await Task.Delay(2000);
 				}
 			}
