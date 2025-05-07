@@ -16,6 +16,7 @@ namespace RabbitMqTest
 			ConnectionFactory factory = new ConnectionFactory
 			{
 				Uri = new Uri("AMQP://admin:admin@172.16.211.18/termidesk")
+							//{amqp://admin:admin@172.16.211.18/termidesk}
 			};
 			try
 			{
