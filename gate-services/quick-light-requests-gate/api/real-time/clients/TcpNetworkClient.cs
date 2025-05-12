@@ -62,14 +62,26 @@ public class TcpNetworkClient : INetworkClient
 
 				while (!token.IsCancellationRequested)
 				{
-					var byteCount = await stream.ReadAsync(buffer, 0, buffer.Length, token);
-					if (byteCount == 0)
+					// Чтение длины (4 байта)
+					byte[] lengthPrefix = new byte[4];
+					int read = await stream.ReadAsync(lengthPrefix, 0, 4, token);
+					if (read == 0) break; // соединение закрыто
+
+					if (!BitConverter.IsLittleEndian)
+						Array.Reverse(lengthPrefix);
+					int messageLength = BitConverter.ToInt32(lengthPrefix, 0);
+
+					// Чтение самого сообщения
+					byte[] payload = new byte[messageLength];
+					int totalRead = 0;
+					while (totalRead < messageLength)
 					{
-						_logger.LogWarning("[TCP Client] Сервер закрыл соединение");
-						break;
+						int chunkRead = await stream.ReadAsync(payload, totalRead, messageLength - totalRead, token);
+						if (chunkRead == 0) break;
+						totalRead += chunkRead;
 					}
 
-					var message = Encoding.UTF8.GetString(buffer, 0, byteCount);
+					string message = Encoding.UTF8.GetString(payload, 0, totalRead);
 					_logger.LogInformation("[TCP Client] Получено сообщение: {Message}", message);
 
 					await _messageProcessingService.ProcessIncomingMessageAsync(
@@ -80,6 +92,7 @@ public class TcpNetworkClient : INetworkClient
 						port: _port,
 						protocol: "tcp");
 				}
+
 			}
 			catch (OperationCanceledException)
 			{

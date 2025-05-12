@@ -1,29 +1,58 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Microsoft.Extensions.Configuration;
+using Serilog;
 
 class Program
 {
 	const int Port = 5018;
 
-	static readonly string Message = "{\"globalId\":\"2e910bd5e1724367891d06053e537727\",\"nEmergencyCardId\":\"123123456\",\"dtCreate\":\"2024-11-26T18:31:01+03:00\",\"nCallTypeId\":\"5\",\"nCardSyntheticState\":\"2\",\"nCard01SyntheticState\":\"2\",\"nCard02SyntheticState\":\"2\",\"nCard03SyntheticState\":\"2\",\"nCard04SyntheticState\":\"2\",\"nCardCommServSyntheticState\":\"6\",\"nCardATSyntheticState\":\"2\",\"lWithCall\":\"0\",\"strCreator\":\"Оператор112(2111209)\",\"strAddressLevel1\":\"Санкт-Петербургг\",\"strAddressLevel2\":\"Санкт-Петербургг\",\"strStreet\":\"ЗАГОРОДНЫЙпроспект\",\"strAddressString\":\"Санкт-Петербургг,Санкт-ПетербурггПерекресток:10-ЯКРАСНОАРМЕЙСКАЯулица,ЗАГОРОДНЫЙпроспект\",\"strBuilding\":\"52\",\"strRoom\":\"113\",\"strAdditionalLocationInfo\":\"ТочноНаВатутина\",\"strEntrance\":\"4\",\"strEntranceCode\":\"552\",\"strStoreys\":\"5\",\"nFloor\":\"3\",\"strIncidentDescription\":\"ТестНовыхПолей\",\"nIncidentTypeID\":\"78\",\"strIncidentType\":\"Драка\",\"strCallerContactPhone\":\"89319999174\",\"strDeclarantName\":\"Александр\",\"strDeclarantLastName\":\"Липанов\",\"strDeclarantMiddleName\":\"Игоревич\",\"strDeclarantBuildingNumber\":\"3\",\"strDeclarantAddressString\":\"Санкт-Петербургг,Песочныйп,10-Йквартал\",\"strDeclarantAddressLevel1\":\"Санкт-Петербургг\",\"strDeclarantAddressLevel2\":\"Песочныйп\",\"strDeclarantStreet\":\"10-Йквартал\",\"strDeclarantAdditionalLocationInfo\":\"ОнТочноВидел\",\"strDeclarantCorps\":\"1\",\"strDeclarantFlat\":\"22\",\"geoLatitude\":\"59.92057\",\"geoLongitude\":\"30.32978\",\"declarantGeoLatitude\":\"60.12391\",\"declarantGeoLongitude\":\"30.16912\",\"strLanguage\":\"Английский\",\"lNear\":\"1\",\"strKm\":\"1\",\"nCasualties\":\"11\",\"lHumanThreat\":\"1\",\"nCityid\":10,\"control\":\"1\",\"lTestCard\":\"1\",\"nPossession\":\"432\",\"strStructure\":\"Строение222\",\"nLocalDistrictId\":\"1\",\"strRoad\":\"ДорогаДолгая\",\"nMeter\":\"99\",\"lChs\":\"1\",\"strAdditionalInfo\":\"Чтотослучилось,номынезнаемчто\",\"dtDeclarantDateOfBirth\":\"1996-07-02T01:00:00+04:00\",\"strAddressStrip\":\"улватутина,д11\",\"nDeclarantStatusId\":\"1\"}";
-
-	static async Task Main()
+	static async Task Main(string[] args)
 	{
+		var config = BuildConfig();
+
+		Log.Logger = new LoggerConfiguration()
+			.ReadFrom.Configuration(config)
+			.Enrich.FromLogContext()
+			.WriteTo.Console()
+			.CreateLogger();
+
+		string message = config["TcpSettings:Message"];
+
+		if (string.IsNullOrWhiteSpace(message))
+		{
+			Console.WriteLine("❌ Message не загружен из конфигурации!");
+			return;
+		}
+
 		Console.Title = "outside tcp server simulation";
 		var listener = new TcpListener(IPAddress.Any, Port);
+
 		listener.Start();
-		Console.WriteLine($"Сервер запущен на порту {Port}");
+
+		Log.Information("Сервер запущен на порту {Port}", Port);
 
 		while (true)
 		{
 			TcpClient client = await listener.AcceptTcpClientAsync();
-			Console.WriteLine("Клиент подключен");
-			_ = Task.Run(() => HandleClientAsync(client));
+			Log.Information("Клиент подключен");
+			_ = Task.Run(() => HandleClientAsync(client, message));
 		}
 	}
 
-	static async Task HandleClientAsync(TcpClient client)
+	static IConfiguration BuildConfig()
+	{
+		var builder = new ConfigurationBuilder()
+			.SetBasePath(AppContext.BaseDirectory)
+			.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+			.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+			.AddEnvironmentVariables();
+
+		return builder.Build();
+	}
+
+	static async Task HandleClientAsync(TcpClient client, string message)
 	{
 		try
 		{
@@ -35,33 +64,37 @@ class Program
 
 				while (client.Connected)
 				{
-					// Проверяем, жив ли клиент
 					if (stream.DataAvailable)
 					{
 						int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-						if (bytesRead == 0) break; // Клиент закрыл соединение
-						Console.WriteLine($"Получено сообщение: {Encoding.UTF8.GetString(buffer, 0, bytesRead)}");
+						if (bytesRead == 0) break;
+						Log.Information("Получено сообщение: {Data}", Encoding.UTF8.GetString(buffer, 0, bytesRead));
 					}
 
-					//string message = $"Test message {messageCount}";
-					byte[] data = Encoding.UTF8.GetBytes(Message);
-					await stream.WriteAsync(data, 0, data.Length);
-					Console.WriteLine($"Отправлено сообщение номер {messageCount}");
+					byte[] payload = Encoding.UTF8.GetBytes(message);
+					byte[] lengthPrefix = BitConverter.GetBytes(payload.Length);
+					if (!BitConverter.IsLittleEndian)
+						Array.Reverse(lengthPrefix); // гарантируем little-endian
+
+					await stream.WriteAsync(lengthPrefix, 0, lengthPrefix.Length);
+					await stream.WriteAsync(payload, 0, payload.Length);
+
+					Log.Information("Отправлено сообщение номер {Count}", messageCount);
 
 					messageCount++;
-					Console.WriteLine($"TCP server is running: {Port} - {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+					Log.Information("TCP server is running: {Port} - {Time}", Port, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"));
 
-					await Task.Delay(2000);
+					await Task.Delay(3000);
 				}
 			}
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine($"Ошибка: {ex.Message}");
+			Log.Error(ex, "Ошибка при обработке клиента");
 		}
 		finally
 		{
-			Console.WriteLine("Клиент отключился");
+			Log.Information("Клиент отключился");
 		}
 	}
 }
