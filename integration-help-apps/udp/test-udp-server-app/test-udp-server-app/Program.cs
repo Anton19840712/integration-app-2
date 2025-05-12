@@ -1,87 +1,99 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using Microsoft.Extensions.Configuration;
+using Serilog;
 
 namespace UdpServerApp
 {
-    class Program
-    {
-        static async Task Main(string[] args)
-        {
-            int port = 5018;
-            var udpServer = new UdpServer(port);
+	class Program
+	{
+		static async Task Main(string[] args)
+		{
+			var config = BuildConfig();
 
-            Console.WriteLine($"Запуск UDP-сервера на порту {port}...");
-            var cts = new CancellationTokenSource();
+			Log.Logger = new LoggerConfiguration()
+				.ReadFrom.Configuration(config)
+				.Enrich.FromLogContext()
+				.WriteTo.Console()
+				.CreateLogger();
 
-            var serverTask = udpServer.StartAsync(cts.Token);
+			string messageToSend = config["UdpSettings:Message"];
+			if (string.IsNullOrWhiteSpace(messageToSend))
+			{
+				Log.Error("❌ Сообщение из конфигурации не загружено!");
+				return;
+			}
 
-            Console.WriteLine("Нажмите любую клавишу для остановки сервера.");
-            Console.ReadKey();
+			int port = 5018;
+			var udpServer = new UdpServer(port, messageToSend);
 
-            cts.Cancel();
-            await serverTask;
+			Log.Information("Запуск UDP-сервера на порту {Port}...", port);
+			var cts = new CancellationTokenSource();
 
-            Console.WriteLine("Сервер остановлен.");
-        }
-    }
+			var serverTask = udpServer.StartAsync(cts.Token);
 
-    public class UdpServer
-    {
-        private readonly int _port;
-        private UdpClient _udpServer;
-        private CancellationTokenSource _cts;
-        private DateTime _lastClientMessageTime;
+			Console.WriteLine("Нажмите любую клавишу для остановки сервера.");
+			Console.ReadKey();
 
-        public UdpServer(int port)
-        {
-            _port = port;
-            _lastClientMessageTime = DateTime.UtcNow;
-        }
+			cts.Cancel();
+			await serverTask;
 
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _udpServer = new UdpClient(_port);
+			Log.Information("UDP-сервер остановлен.");
+		}
 
-            Console.WriteLine($"UDP-сервер запущен на порту {_port}.");
+		static IConfiguration BuildConfig()
+		{
+			return new ConfigurationBuilder()
+				.SetBasePath(AppContext.BaseDirectory)
+				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+				.AddEnvironmentVariables()
+				.Build();
+		}
+	}
+
+	public class UdpServer
+	{
+		private readonly int _port;
+		private readonly string _messageToSend;
+		private UdpClient _udpServer;
+		private CancellationTokenSource _cts;
+		private readonly HashSet<IPEndPoint> _clients = new();
+
+		public UdpServer(int port, string messageToSend)
+		{
+			_port = port;
+			_messageToSend = messageToSend;
+		}
+
+		public async Task StartAsync(CancellationToken cancellationToken)
+		{
+			_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			_udpServer = new UdpClient(_port);
+
+			Log.Information("UDP-сервер запущен на порту {Port}", _port);
 
 			try
 			{
-				Console.WriteLine("Ожидание первого сообщения от клиента...");
-
-				// Получаем первое сообщение от клиента
-				var result = await _udpServer.ReceiveAsync();
-				_lastClientMessageTime = DateTime.UtcNow;
-
-				string receivedMessage = Encoding.UTF8.GetString(result.Buffer);
-				Console.WriteLine($"Получено сообщение от клиента: {receivedMessage}");
-
-				var clientEndPoint = result.RemoteEndPoint;
-
-				// После первого сообщения начинаем бесконечно слать данные
-				int messageCounter = 1;
 				while (!_cts.Token.IsCancellationRequested)
 				{
-					string messageToSend = $"Сообщение {messageCounter++} от UDP-сервера";
-					byte[] sendBytes = Encoding.UTF8.GetBytes(messageToSend);
-					await _udpServer.SendAsync(sendBytes, sendBytes.Length, clientEndPoint);
+					var result = await _udpServer.ReceiveAsync();
 
-					Console.WriteLine($"Отправлено сообщение: {messageToSend}");
+					string received = Encoding.UTF8.GetString(result.Buffer);
+					var clientEndPoint = result.RemoteEndPoint;
 
-					// Ждём ответ от клиента с таймаутом
-					var receiveTask = _udpServer.ReceiveAsync();
-					var timeoutTask = Task.Delay(5000);
+					Log.Information("Получено сообщение от клиента {Client}: {Message}", clientEndPoint, received);
 
-					var completed = await Task.WhenAny(receiveTask, timeoutTask);
-					if (completed == receiveTask)
+					if (_clients.Add(clientEndPoint))
 					{
-						var clientResponse = await receiveTask;
-						string response = Encoding.UTF8.GetString(clientResponse.Buffer);
-						Console.WriteLine($"Получен ответ от клиента: {response}");
+						Log.Information("Добавлен новый клиент: {Client}", clientEndPoint);
 					}
-					else
+
+					foreach (var client in _clients)
 					{
-						Console.WriteLine("Клиент не ответил на сообщение.");
+						byte[] data = Encoding.UTF8.GetBytes(_messageToSend);
+						await _udpServer.SendAsync(data, data.Length, client);
+						Log.Information("Отправлено сообщение клиенту {Client}: {Message}", client, _messageToSend);
 					}
 
 					await Task.Delay(3000, _cts.Token);
@@ -89,17 +101,17 @@ namespace UdpServerApp
 			}
 			catch (OperationCanceledException)
 			{
-				Console.WriteLine("Сервер остановлен по запросу.");
+				Log.Information("UDP-сервер остановлен по запросу.");
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"Ошибка в UDP-сервере: {ex.Message}");
+				Log.Error(ex, "Ошибка в UDP-сервере");
 			}
-            finally
-            {
-                _udpServer?.Close();
-                Console.WriteLine("Сервер завершил работу.");
-            }
-        }
-    }
+			finally
+			{
+				_udpServer?.Close();
+				Log.Information("Сервер завершил работу.");
+			}
+		}
+	}
 }
