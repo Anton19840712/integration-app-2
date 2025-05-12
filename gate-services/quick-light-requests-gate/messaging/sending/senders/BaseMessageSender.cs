@@ -18,6 +18,18 @@ namespace messaging.sending.senders
 
 		public async Task SendMessageAsync(string queueForListening, CancellationToken cancellationToken)
 		{
+			if (string.IsNullOrWhiteSpace(queueForListening))
+			{
+				_logger.LogWarning("Имя очереди для прослушивания не указано.");
+				return;
+			}
+
+			if (_rabbitMqQueueListener == null)
+			{
+				_logger.LogError("RabbitMQ listener не инициализирован.");
+				return;
+			}
+
 			try
 			{
 				await _rabbitMqQueueListener.StartListeningAsync(
@@ -25,6 +37,12 @@ namespace messaging.sending.senders
 					stoppingToken: cancellationToken,
 					onMessageReceived: async message =>
 					{
+						if (message == null)
+						{
+							_logger.LogWarning("Получено пустое сообщение из очереди.");
+							return;
+						}
+
 						try
 						{
 							await SendToClientAsync(message + "\n", cancellationToken);
@@ -41,7 +59,6 @@ namespace messaging.sending.senders
 				_logger.LogError(ex, "Ошибка в процессе отправки сообщений клиенту");
 			}
 		}
-
 		protected abstract Task SendToClientAsync(string message, CancellationToken cancellationToken);
 	}
 }
