@@ -82,6 +82,8 @@ public class TcpNetworkClient : INetworkClient
 					}
 
 					string message = Encoding.UTF8.GetString(payload, 0, totalRead);
+
+					_logger.LogInformation(""); // Пустая строка для визуального разделения
 					_logger.LogInformation("[TCP Client] Получено сообщение: {Message}", message);
 
 					await _messageProcessingService.ProcessIncomingMessageAsync(

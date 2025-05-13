@@ -26,14 +26,14 @@ namespace servers_api.api.streaming.clients
 			_messageProcessingService = messageProcessingService;
 
 			_host = configuration["host"] ?? "localhost";
-			_port = int.TryParse(configuration["port"], out var p) ? p : 5001;
+			_port = int.TryParse(configuration["port"], out var p) ? p : 5018;
 
 			var companyName = configuration["CompanyName"] ?? "default";
 			_outQueue = companyName + "_out";
 			_inQueue = companyName + "_in";
 		}
 
-		public string Protocol => "websocket";// должен быть match с передаваемым через json параметром.
+		public string Protocol => "ws";// должен быть match с передаваемым через json параметром.
 		public bool IsRunning => _cts != null && !_cts.IsCancellationRequested;
 
 		public Task StartAsync(CancellationToken cancellationToken)
@@ -65,25 +65,35 @@ namespace servers_api.api.streaming.clients
 					_logger.LogInformation("[WS Client] Отправлено сообщение: {Message}", helloMessage);
 
 					var buffer = new byte[1024];
-					attempt = 0;
+					var messageBuffer = new ArraySegment<byte>(new byte[8192]); // можно увеличить при необходимости
 
 					while (!token.IsCancellationRequested && client.State == WebSocketState.Open)
 					{
-						var result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), token);
+						var messageSegments = new List<byte>();
 
-						if (result.MessageType == WebSocketMessageType.Close)
+						WebSocketReceiveResult result;
+
+						do
 						{
-							_logger.LogWarning("[WS Client] Сервер закрыл соединение");
-							await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие от клиента", token);
-							break;
-						}
+							result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), token);
+							messageSegments.AddRange(buffer.Take(result.Count));
 
-						var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-						_logger.LogInformation("[WS Client] Получено сообщение: {Message}", message);
+							if (result.MessageType == WebSocketMessageType.Close)
+							{
+								_logger.LogWarning("[WS Client] Сервер закрыл соединение");
+								await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие от клиента", token);
+								return;
+							}
 
-						if (message == "Ping")
+						} while (!result.EndOfMessage);
+
+						var fullMessage = Encoding.UTF8.GetString(messageSegments.ToArray());
+
+						_logger.LogInformation(""); // Пустая строка для визуального разделения
+						_logger.LogInformation("[WS Client] Получено сообщение: {Message}", fullMessage);
+
+						if (fullMessage == "Ping")
 						{
-							// Ответ на Ping
 							string pong = "Pong";
 							var pongBytes = Encoding.UTF8.GetBytes(pong);
 							await client.SendAsync(new ArraySegment<byte>(pongBytes), WebSocketMessageType.Text, true, token);
@@ -91,7 +101,7 @@ namespace servers_api.api.streaming.clients
 						}
 
 						await _messageProcessingService.ProcessIncomingMessageAsync(
-							message: message,
+							message: fullMessage,
 							instanceModelQueueOutName: _outQueue,
 							instanceModelQueueInName: _inQueue,
 							host: _host,

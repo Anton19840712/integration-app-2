@@ -138,6 +138,8 @@ namespace servers_api.api.streaming.servers
 					}
 
 					var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+					_logger.LogInformation(""); // Пустая строка для визуального разделения
 					_logger.LogInformation("[WS] Получено сообщение: {Message}", message);
 
 					string reply = "Ответ от WebSocket-сервера: " + message;

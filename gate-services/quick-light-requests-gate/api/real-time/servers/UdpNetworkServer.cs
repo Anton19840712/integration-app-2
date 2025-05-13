@@ -96,7 +96,7 @@ namespace servers_api.api.streaming.servers
 		private async Task HandleIncomingMessage(byte[] data, IPEndPoint remoteEndPoint, CancellationToken token)
 		{
 			var message = Encoding.UTF8.GetString(data);
-			_logger.LogInformation("[UDP] Получено сообщение от {RemoteEndPoint}: {Message}", remoteEndPoint, message);
+			_logger.LogInformation("\n[UDP] Получено сообщение от {RemoteEndPoint}: {Message}", remoteEndPoint, message);
 
 			try
 			{
