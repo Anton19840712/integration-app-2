@@ -1,20 +1,35 @@
 ﻿using System.Net;
 using System.Net.WebSockets;
 using System.Text;
-using System.Threading;
+using Microsoft.Extensions.Configuration;
+using Serilog;
 
 class Program
 {
-	private const string Host = "127.0.0.1";
-	private const int Port = 5001;
+	private static IConfiguration _config;
+	private static ILogger _logger;
+	private static string _responseMessage;
+	private static int _port;
+	private static string _host;
 
 	static async Task Main(string[] args)
 	{
-		Console.WriteLine($"Запуск WebSocket-сервера на {Host}:{Port}...");
-		HttpListener listener = new HttpListener();
-		listener.Prefixes.Add($"http://{Host}:{Port}/");
+		_config = BuildConfig();
+		_logger = new LoggerConfiguration()
+			.ReadFrom.Configuration(_config)
+			.Enrich.FromLogContext()
+			.CreateLogger();
+
+		_host = _config["WebSocketSettings:Host"] ?? "127.0.0.1";
+		_port = int.Parse(_config["WebSocketSettings:Port"] ?? "5018");
+		_responseMessage = _config["WebSocketSettings:Message"] ?? "Сообщение от сервера";
+
+		var listener = new HttpListener();
+		listener.Prefixes.Add($"http://{_host}:{_port}/");
 		listener.Start();
-		Console.WriteLine("WebSocket-сервер запущен!");
+
+		Console.Title = "WebSocket server";
+		_logger.Information("WebSocket-сервер запущен на {Host}:{Port}", _host, _port);
 
 		while (true)
 		{
@@ -23,7 +38,7 @@ class Program
 				HttpListenerContext context = await listener.GetContextAsync();
 				if (context.Request.IsWebSocketRequest)
 				{
-					Console.WriteLine("Получен новый WebSocket-запрос");
+					_logger.Information("Получен новый WebSocket-запрос");
 					HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(null);
 					_ = HandleConnectionAsync(wsContext.WebSocket);
 				}
@@ -35,7 +50,7 @@ class Program
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine($"Ошибка при обработке запроса: {ex.Message}");
+				_logger.Error(ex, "Ошибка при обработке WebSocket-запроса");
 			}
 		}
 	}
@@ -43,65 +58,63 @@ class Program
 	private static async Task HandleConnectionAsync(WebSocket webSocket)
 	{
 		byte[] buffer = new byte[1024];
-		Console.WriteLine("Клиент подключен");
-
-		var pingInterval = TimeSpan.FromSeconds(5); // Интервал для пинга
-		var lastPingTime = DateTime.Now;
+		_logger.Information("Клиент подключен");
 
 		try
 		{
+			var sendTask = Task.Run(async () =>
+			{
+				while (webSocket.State == WebSocketState.Open)
+				{
+					try
+					{
+						byte[] messageBytes = Encoding.UTF8.GetBytes(_responseMessage);
+						await webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+						_logger.Information("Отправлено клиенту: {Message}", _responseMessage);
+					}
+					catch (Exception ex)
+					{
+						_logger.Warning("Ошибка при отправке сообщения клиенту: {Error}", ex.Message);
+					}
+					await Task.Delay(3000);
+				}
+			});
+
 			while (webSocket.State == WebSocketState.Open)
 			{
-				// Отправка пинга раз в 5 секунд
-				if ((DateTime.Now - lastPingTime) > pingInterval)
-				{
-					Console.WriteLine("Отправка пинга клиенту");
-					await SendPingAsync(webSocket);
-					lastPingTime = DateTime.Now; // Обновляем время последнего пинга
-				}
-
 				var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 				if (result.MessageType == WebSocketMessageType.Close)
 				{
-					Console.WriteLine("Клиент закрыл соединение");
-					await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие соединения", CancellationToken.None);
+					_logger.Information("Клиент закрыл соединение");
+					await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрытие клиентом", CancellationToken.None);
 					break;
 				}
-				else
-				{
-					string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-					Console.WriteLine($"Получено сообщение от клиента: {message}");
 
-					// Пример ответа
-					string responseMessage = $"Сервер ws принял сообщение от ws клиента: {message}";
-					byte[] responseBytes = Encoding.UTF8.GetBytes(responseMessage);
-					await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
-					Console.WriteLine($"Отправлен ответ: {responseMessage}");
-				}
+				string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+				_logger.Information("Получено сообщение от клиента: {Message}", message);
 			}
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine($"Ошибка в WebSocket-соединении: {ex.Message}");
+			_logger.Error(ex, "Ошибка в WebSocket-соединении");
 		}
 		finally
 		{
-			Console.WriteLine("Закрытие WebSocket-соединения");
-			await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Сервер завершает соединение", CancellationToken.None);
+			if (webSocket.State != WebSocketState.Closed)
+			{
+				await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Сервер завершает соединение", CancellationToken.None);
+			}
+			_logger.Information("WebSocket-соединение закрыто");
 		}
 	}
 
-	private static async Task SendPingAsync(WebSocket webSocket)
+	private static IConfiguration BuildConfig()
 	{
-		try
-		{
-			byte[] pingMessage = Encoding.UTF8.GetBytes("Ping");
-			await webSocket.SendAsync(new ArraySegment<byte>(pingMessage), WebSocketMessageType.Text, true, CancellationToken.None);
-			Console.WriteLine("Пинг отправлен клиенту");
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Ошибка при отправке пинга: {ex.Message}");
-		}
+		var builder = new ConfigurationBuilder()
+			.SetBasePath(AppContext.BaseDirectory)
+			.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+			.AddEnvironmentVariables();
+
+		return builder.Build();
 	}
 }
