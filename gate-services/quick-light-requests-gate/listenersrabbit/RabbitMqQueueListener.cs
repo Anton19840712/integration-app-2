@@ -19,41 +19,25 @@ namespace listenersrabbit
 			string queueOutName,
 			CancellationToken stoppingToken,
 			string pathForSave = null,
-			Func<string, Task> onMessageReceived = null) // <--- сюда можно передать обработку сообщений
+			Func<string, Task> onMessageReceived = null)
 		{
 			_channel = _connection.CreateModel();
 
-			const int maxAttempts = 5;
-			int attempt = 0;
-
-			// Пытаемся найти очередь 4 раза, если не нашли, то создаем на 5-й попытке
-			while (attempt < maxAttempts)
+			if (!QueueExists(queueOutName))
 			{
-				attempt++;
-
-				_logger.LogWarning("Очередь {Queue} из базы не найдена. Попытка {Attempt}/{MaxAttempts}", queueOutName, attempt, maxAttempts);
-
-				if (attempt < maxAttempts)
-				{
-					// Ждем перед следующей попыткой, если попытки еще не исчерпаны
-					await Task.Delay(1000, stoppingToken);
-				}
-				else
-				{
-					// На 5-й попытке создаем очередь
-					_logger.LogWarning("Очередь {Queue} из базы не найдена после {MaxAttempts} попыток. Пробую создать очередь и подключиться.", queueOutName, maxAttempts);
-					CreateQueue(queueOutName);
-				}
+				_logger.LogWarning("Очередь {Queue} не найдена. Создаю новую.", queueOutName);
+				CreateQueue(queueOutName);
+			}
+			else
+			{
+				_logger.LogInformation("Очередь {Queue} найдена. Подключаюсь.", queueOutName);
 			}
 
-			// Теперь подключаемся к очереди (после того, как очередь создана)
 			var consumer = new EventingBasicConsumer(_channel);
 
 			consumer.Received += async (model, ea) =>
 			{
 				var message = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
-
-				_logger.LogInformation("Получено сообщение из {Queue}: {Message}", queueOutName, message);
 
 				if (onMessageReceived != null)
 				{
@@ -78,9 +62,15 @@ namespace listenersrabbit
 			}
 		}
 
+		/// <summary>
+		/// Делаем что-то с полученным сообщением. Пока что логируем.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="queueName"></param>
+		/// <returns></returns>
 		protected virtual Task ProcessMessageAsync(string message, string queueName)
 		{
-			_logger.LogInformation("Обработка сообщения из {Queue}: {Message}", queueName, message);
+			_logger.LogInformation("Сообщение получено и обработано сообщения из {Queue}: {Message}", queueName, message);
 			return Task.CompletedTask;
 		}
 
@@ -106,6 +96,20 @@ namespace listenersrabbit
 		{
 			_logger.LogInformation("Остановка RabbitMQ слушателя...");
 			_channel?.Close();
+		}
+
+		private bool QueueExists(string queueName)
+		{
+			try
+			{
+				_channel.QueueDeclarePassive(queueName);
+				return true;
+			}
+			catch (RabbitMQ.Client.Exceptions.OperationInterruptedException ex)
+			{
+				_logger.LogWarning("Очередь {Queue} не существует: {Message}", queueName, ex.Message);
+				return false;
+			}
 		}
 	}
 }
