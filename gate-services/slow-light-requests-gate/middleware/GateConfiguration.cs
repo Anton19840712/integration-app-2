@@ -13,7 +13,7 @@ public class GateConfiguration
 	/// </summary>
 	public async Task<(string HttpUrl, string HttpsUrl)> ConfigureDynamicGateAsync(string[] args, WebApplicationBuilder builder)
 	{
-		var configFilePath = args.FirstOrDefault(a => a.StartsWith("--config="))?.Substring(9) ?? "./configs/stream.json";
+		var configFilePath = args.FirstOrDefault(a => a.StartsWith("--config="))?.Substring(9) ?? "./configs/rest.json";
 		var config = LoadConfiguration(configFilePath);
 
 		var configType = config["type"]?.ToString() ?? config["Type"]?.ToString();
@@ -41,22 +41,35 @@ public class GateConfiguration
 	{
 		try
 		{
-			var basePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", ".."));
-			var fullPath = Path.GetFullPath(configFilePath, basePath);
-			var fileName = Path.GetFileName(fullPath);
+			string fullPath;
 
+			if (Path.IsPathRooted(configFilePath))
+			{
+				fullPath = configFilePath;
+			}
+			else
+			{
+				var basePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", ".."));
+				fullPath = Path.GetFullPath(Path.Combine(basePath, configFilePath));
+			}
+
+			// Печатаем информацию для отладки.
 			Console.WriteLine();
-			Console.WriteLine($"[INFO] Base path: {basePath}");
-			Console.WriteLine($"[INFO] Full config path: {fullPath}");
-			Console.WriteLine($"[INFO] Загружается конфигурация: {fileName}");
+			Console.WriteLine($"[INFO] Конечный путь к конфигу: {fullPath}");
+			Console.WriteLine($"[INFO] Загружается конфигурация: {Path.GetFileName(fullPath)}");
 			Console.WriteLine();
 
+			// Проверка существования файла.
+			if (!File.Exists(fullPath))
+				throw new FileNotFoundException("Файл конфигурации не найден", fullPath);
+
+			// Загружаем конфигурацию из файла.
 			var json = File.ReadAllText(fullPath);
 			return JObject.Parse(json);
 		}
 		catch (Exception ex)
 		{
-			throw new InvalidOperationException($"Ошибка при загрузке конфигурации из файла {configFilePath}: {ex.Message}");
+			throw new InvalidOperationException($"Ошибка при загрузке конфигурации из файла '{configFilePath}': {ex.Message}");
 		}
 	}
 }

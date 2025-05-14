@@ -1,14 +1,14 @@
-﻿using lazy_light_requests_gate;
-using lazy_light_requests_gate.repositories;
+﻿using lazy_light_requests_gate.repositories;
+using lazy_light_requests_gate;
 
 public class OutboxMongoBackgroundService : BackgroundService
 {
-	private readonly MongoRepository<OutboxMessage> _outboxRepository;
+	private readonly IMongoRepository<OutboxMessage> _outboxRepository;
 	private readonly IRabbitMqService _rabbitMqService;
 	private readonly ILogger<OutboxMongoBackgroundService> _logger;
 
 	public OutboxMongoBackgroundService(
-		MongoRepository<OutboxMessage> outboxRepository,
+		IMongoRepository<OutboxMessage> outboxRepository,
 		IRabbitMqService rabbitMqService,
 		ILogger<OutboxMongoBackgroundService> logger)
 	{
@@ -33,6 +33,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 
 				foreach (var message in messages)
 				{
+					_logger.LogInformation(""); // Пустая строка для визуального разделения
 					_logger.LogInformation($"Публикация сообщения: {message.Payload}");
 
 					await _rabbitMqService.PublishMessageAsync(
@@ -42,6 +43,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 
 					await _outboxRepository.MarkMessageAsProcessedAsync(message.Id);
 
+					_logger.LogInformation(""); // Пустая строка для визуального разделения
 					_logger.LogInformation($"Обработано в Outbox: {message.Payload}");
 				}
 			}
@@ -65,7 +67,7 @@ public class OutboxMongoBackgroundService : BackgroundService
 			try
 			{
 				int deletedCount = await _outboxRepository.DeleteOldMessagesAsync(TimeSpan.FromSeconds(ttlDifference));
-				if (deletedCount!=0)
+				if (deletedCount != 0)
 				{
 					_logger.LogInformation($"OutboxMongoBackgroundService: yдалено {deletedCount} старых сообщений из базы GatewayDB, коллекции outbox_messages.");
 				}

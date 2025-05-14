@@ -1,6 +1,7 @@
 ﻿using lazy_light_requests_gate.entities;
 using lazy_light_requests_gate.listenersrabbit;
 using lazy_light_requests_gate.repositories;
+using listenersrabbit;
 
 public class QueueListenerBackgroundService : BackgroundService
 {
@@ -21,7 +22,7 @@ public class QueueListenerBackgroundService : BackgroundService
 		{
 			using var scope = _scopeFactory.CreateScope();
 			var queueListener = scope.ServiceProvider.GetRequiredService<IRabbitMqQueueListener<RabbitMqQueueListener>>();
-			var queuesRepository = scope.ServiceProvider.GetRequiredService<MongoRepository<QueuesEntity>>();
+			var queuesRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<QueuesEntity>>();
 
 			var elements = await queuesRepository.GetAllAsync();
 

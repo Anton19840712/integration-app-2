@@ -1,8 +1,9 @@
-﻿using lazy_light_requests_gate.entities;
-using lazy_light_requests_gate.models;
+﻿using lazy_light_requests_gate.configurationsettings;
+using lazy_light_requests_gate.entities;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Serilog;
 using System.Linq.Expressions;
 
 namespace lazy_light_requests_gate.repositories
@@ -16,8 +17,21 @@ namespace lazy_light_requests_gate.repositories
 			IOptions<MongoDbSettings> settings)
 		{
 			var database = mongoClient.GetDatabase(settings.Value.DatabaseName);
+
 			string collectionName = GetCollectionName(typeof(T), settings.Value);
 			_collection = database.GetCollection<T>(collectionName);
+
+			try
+			{
+				database.ListCollectionNames().ToList(); // Простой запрос для проверки подключения
+				Log.Information($"Успешное подключение к MongoDB в базе: {settings.Value.DatabaseName}, коллекция: {collectionName}");
+			}
+			catch (Exception ex)
+			{
+				// Логируем ошибку, если подключение не удалось
+				Log.Error($"Ошибка при подключении к MongoDB в базе: {settings.Value.DatabaseName}, коллекция: {collectionName}. Ошибка: {ex.Message}");
+				throw new InvalidOperationException("Не удалось подключиться к MongoDB", ex);
+			}
 		}
 
 		private string GetCollectionName(Type entityType, MongoDbSettings settings)
