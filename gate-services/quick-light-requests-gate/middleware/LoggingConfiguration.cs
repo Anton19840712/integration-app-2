@@ -1,11 +1,11 @@
-п»їusing Serilog;
+using Serilog;
 
 namespace middleware
 {
-	static class LoggingConfiguration
-	{
+    public static class LoggingConfiguration
+    {
 		/// <summary>
-		/// РќР°СЃС‚СЂРѕР№РєР° Serilog РґР»СЏ РїСЂРёР»РѕР¶РµРЅРёСЏ
+		/// Настройка Serilog для приложения
 		/// </summary>
 		public static void ConfigureLogging(WebApplicationBuilder builder)
 		{

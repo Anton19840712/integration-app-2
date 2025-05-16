@@ -1,50 +1,53 @@
-﻿using listenersrabbit;
-using models.dynamicgatesettings.entities;
-using repositories;
+using CommonGateLib.Entities;
+using rabbit;
+using repository;
 
-public class QueueListenerBackgroundService : BackgroundService
+namespace background
 {
-	private readonly IServiceScopeFactory _scopeFactory;
-	private readonly ILogger<QueueListenerBackgroundService> _logger;
-
-	public QueueListenerBackgroundService(IServiceScopeFactory scopeFactory, ILogger<QueueListenerBackgroundService> logger)
+	public class QueueListenerBackgroundService : BackgroundService
 	{
-		_scopeFactory = scopeFactory;
-		_logger = logger;
-	}
+		private readonly IServiceScopeFactory _scopeFactory;
+		private readonly ILogger<QueueListenerBackgroundService> _logger;
 
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-	{
-		_logger.LogInformation("QueueListenerBackgroundService: запуск фонового сервиса прослушивания очередей.");
-
-		try
+		public QueueListenerBackgroundService(IServiceScopeFactory scopeFactory, ILogger<QueueListenerBackgroundService> logger)
 		{
-			using var scope = _scopeFactory.CreateScope();
-			var queueListener = scope.ServiceProvider.GetRequiredService<IRabbitMqQueueListener<RabbitMqQueueListener>>();
-			var queuesRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<QueuesEntity>>();
-
-			var elements = await queuesRepository.GetAllAsync();
-
-			if (elements == null || !elements.Any())
-			{
-				_logger.LogInformation("Нет конкретных очередей для прослушивания. Слушатели rabbit не будут запущены.");
-				return;
-			}
-
-			var listeningTasks = elements
-				.Select(element => Task.Run(() => queueListener.StartListeningAsync(element.OutQueueName, stoppingToken), stoppingToken))
-				.ToList();
-
-			await Task.WhenAll(listeningTasks);
-
-			foreach (var item in elements)
-			{
-				_logger.LogInformation($"Слушатель для очереди {item.OutQueueName} запущен.");
-			}
+			_scopeFactory = scopeFactory;
+			_logger = logger;
 		}
-		catch (Exception ex)
+
+		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
-			_logger.LogError(ex, "Ошибка при запуске слушателей очередей.");
+			_logger.LogInformation("QueueListenerBackgroundService: запуск фонового сервиса прослушивания очередей.");
+
+			try
+			{
+				using var scope = _scopeFactory.CreateScope();
+				var queueListener = scope.ServiceProvider.GetRequiredService<IRabbitMqQueueListener<RabbitMqQueueListener>>();
+				var queuesRepository = scope.ServiceProvider.GetRequiredService<IMongoRepository<QueuesEntity>>();
+
+				var elements = await queuesRepository.GetAllAsync();
+
+				if (elements == null || !elements.Any())
+				{
+					_logger.LogInformation("Нет конкретных очередей для прослушивания. Слушатели rabbit не будут запущены.");
+					return;
+				}
+
+				var listeningTasks = elements
+					.Select(element => Task.Run(() => queueListener.StartListeningAsync(element.OutQueueName, stoppingToken), stoppingToken))
+					.ToList();
+
+				await Task.WhenAll(listeningTasks);
+
+				foreach (var item in elements)
+				{
+					_logger.LogInformation($"Слушатель для очереди {item.OutQueueName} запущен.");
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Ошибка при запуске слушателей очередей.");
+			}
 		}
 	}
 }

@@ -1,7 +1,7 @@
 
 using FluentValidation;
-using CommonGateLib.Models;
 using System.Net;
+using CommonGateLib.Models.Common;
 
 namespace CommonGateLib.Validation
 {

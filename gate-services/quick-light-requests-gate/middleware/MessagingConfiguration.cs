@@ -1,6 +1,6 @@
-﻿using messaging.formatting;
-using messaging.processing;
-using messaging.sending.main;
+﻿using CommonGateLib.MessageFormatters;
+using CommonGateLib.MessageProcessing;
+using messaging;
 
 namespace middleware
 {

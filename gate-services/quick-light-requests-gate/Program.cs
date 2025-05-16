@@ -1,9 +1,9 @@
-using messaging.sending.abstractions;
+using api.protocols.clients;
+using api.protocols.core;
+using api.protocols.servers;
+using connection;
 using middleware;
 using Serilog;
-using servers_api.api.streaming.clients;
-using servers_api.api.streaming.core;
-using servers_api.api.streaming.servers;
 
 Console.Title = "integration api";
 
@@ -62,9 +62,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
 	services.AddCommonServices();
 	services.AddHttpServices();
-	services.AddRabbitMqServices(configuration);
+	services.AddRabbitServices(configuration);
 	services.AddMessageServingServices();
-	services.AddMongoDbServices(configuration);
+	services.AddMongoDb(configuration);
 	services.AddMongoDbRepositoriesServices(configuration);
 	services.AddValidationServices();
 	services.AddHostedServices();

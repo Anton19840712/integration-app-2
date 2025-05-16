@@ -1,9 +1,8 @@
-
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
-using CommonGateLib.Models;
-using CommonGateLib.Models.Response;
+using CommonGateLib.Models.Responses;
+using CommonGateLib.Models.Common;
 
 namespace CommonGateLib.Validation
 {

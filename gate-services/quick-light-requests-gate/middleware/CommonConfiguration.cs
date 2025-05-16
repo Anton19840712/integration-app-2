@@ -1,15 +1,10 @@
-﻿namespace middleware
+namespace middleware
 {
-	static class CommonConfiguration
-	{
-		/// <summary>
-		/// Регистрация сервисов общего назначения.
-		/// </summary>
-		public static IServiceCollection AddCommonServices(this IServiceCollection services)
-		{
-			services.AddCors();
-
-			return services;
-		}
-	}
+    public static class CommonConfiguration
+    {
+        public static IServiceCollection AddCommonServices(this IServiceCollection services)
+        {
+            return services;
+        }
+    }
 }

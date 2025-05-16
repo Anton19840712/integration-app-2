@@ -1,6 +1,5 @@
-
-using CommonGateLib.Models;
-using CommonGateLib.Models.Response;
+using CommonGateLib.Models.Common;
+using CommonGateLib.Models.Responses;
 
 namespace CommonGateLib.Validation
 {
